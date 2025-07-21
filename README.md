@@ -91,8 +91,18 @@ src/ocr_receipt/
 3. Clone this repository
 4. Install Poetry: https://python-poetry.org/docs/#installation
 5. Install dependencies: `poetry install`
-6. Run tests: `poetry run pytest tests/`
+6. Run tests: `poetry run pytest`
 7. Start the application: `poetry run python -m ocr_receipt`
+
+### Useful Commands
+- Run the application:
+  ```bash
+  poetry run python -m ocr_receipt
+  ```
+- Run all tests:
+  ```bash
+  poetry run pytest
+  ```
 
 ## License
 MIT License 
