@@ -31,7 +31,7 @@
   - Set up virtual environment
   - **Story Points**: 3
 
-- [ ] **T0.3** - Create requirements.txt and setup.py
+- [x] **T0.3** - Create requirements.txt and setup.py
   - Define all dependencies
   - Create package configuration
   - **Story Points**: 2
