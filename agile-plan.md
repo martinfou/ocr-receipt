@@ -42,7 +42,7 @@
   - Add environment variable support
   - **Story Points**: 5
 
-- [ ] **T0.5** - Set up testing framework
+- [x] **T0.5** - Set up testing framework
   - Configure pytest
   - Set up pytest-qt
   - Create initial test structure
