@@ -64,13 +64,14 @@
 - Set up data models
 
 #### Tasks
-- [ ] **T1.1** - Implement Database Manager
+- [x] **T1.1** - Implement Database Manager
   - Create DatabaseManager class
   - Implement SQLite connection handling
   - Add database initialization
   - **Story Points**: 8
 
 - [ ] **T1.2** - Create database schema
+  - Create migrations directory and initial migration script using yoyo-migrations
   - Implement businesses table
   - Implement business_keywords table
   - Implement projects table
