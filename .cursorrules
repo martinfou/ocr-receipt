@@ -1,0 +1,212 @@
+# OCR Receipt Parser - Cursor Rules
+
+## Project Context
+- **Project**: OCR Invoice Parser desktop application
+- **Technology Stack**: Python 3.8+, PyQt6, SQLite, Tesseract OCR, pdf2image, OpenCV
+- **Architecture**: Layered architecture with GUI, Business Logic, Parser, Core, and Data layers
+- **Development Method**: Agile with 2-week sprints (12 sprints total)
+
+## Key Architecture Components
+
+### Data Layer (SQLite)
+- **businesses**: Store business names and metadata
+- **business_keywords**: Keywords for business matching with fuzzy matching support
+- **projects**: Project organization for invoices
+- **categories**: Invoice categorization with CRA code support
+- **invoice_metadata**: Extracted invoice data and processing results
+
+### Core Layer
+- **OCREngine**: Tesseract OCR integration with confidence scoring
+- **ImageProcessor**: PDF to image conversion and image preprocessing
+- **TextExtractor**: Text extraction from images and PDFs
+- **FuzzyMatcher**: Fuzzy string matching for business name matching
+
+### Parser Layer
+- **BaseParser**: Common parsing functionality and validation
+- **InvoiceParser**: Invoice-specific data extraction (company, total, date, invoice number)
+- **DateExtractor**: Date pattern recognition and validation
+- **CreditCardParser**: Credit card statement parsing (future enhancement)
+
+### Business Logic Layer
+- **BusinessMappingManager**: Business names and keywords management
+- **ProjectManager**: Project CRUD operations
+- **CategoryManager**: Category management with CRA codes
+- **DatabaseManager**: SQLite database operations and migrations
+
+### GUI Layer (PyQt6)
+- **Main Window**: Tabbed interface with 6 main tabs
+- **Single PDF Tab**: File processing and data editing
+- **Business Keywords Tab**: Keyword management and statistics
+- **Projects Tab**: Project management interface
+- **Categories Tab**: Category management interface
+- **File Naming Tab**: Template configuration and preview
+- **Settings Tab**: Application configuration
+
+## Development Guidelines
+
+### Code Style
+- Follow PEP 8 Python style guide
+- Use type hints for all function parameters and return values
+- Write comprehensive docstrings for all classes and methods
+- Use meaningful variable and function names
+- Keep functions focused and under 50 lines when possible
+
+### Testing Requirements
+- Maintain >90% code coverage
+- Write unit tests for all business logic
+- Include integration tests for end-to-end workflows
+- Use pytest-qt for GUI testing
+- Test error conditions and edge cases
+
+### Database Guidelines
+- Use parameterized queries to prevent SQL injection
+- Implement proper error handling for database operations
+- Use transactions for multi-step operations
+- Create indexes for frequently queried columns
+- Implement database migrations for schema changes
+
+### GUI Guidelines
+- Use PyQt6 for all GUI components
+- Follow Qt design patterns and conventions
+- Implement proper signal/slot connections
+- Handle long-running operations in background threads
+- Provide clear user feedback and error messages
+
+### OCR and Image Processing
+- Use Tesseract OCR with confidence scoring
+- Implement image preprocessing for better OCR results
+- Support multiple image formats (PDF, PNG, JPG)
+- Handle OCR failures gracefully with retry logic
+- Cache OCR results when appropriate
+
+## Key Features to Remember
+
+### Business Mapping
+- Support exact, variant, and fuzzy matching for business names
+- Track keyword usage and last used dates
+- Allow case-sensitive and case-insensitive matching
+- Support multiple keywords per business
+
+### File Naming
+- Configurable templates with variable substitution
+- Support for project, category, date, business, and total variables
+- Real-time filename preview
+- Validation to ensure valid filenames
+
+### Data Extraction
+- Extract company name, total amount, date, and invoice number
+- Calculate confidence scores for extracted data
+- Support for multiple date formats
+- Handle currency formatting and normalization
+
+### Configuration Management
+- YAML-based configuration files
+- Environment variable overrides
+- Default configuration with sensible defaults
+- Runtime configuration updates
+
+## Common Patterns
+
+### Error Handling
+```python
+try:
+    # Operation
+    result = perform_operation()
+except SpecificException as e:
+    logger.error(f"Operation failed: {e}")
+    # Handle specific error
+except Exception as e:
+    logger.error(f"Unexpected error: {e}")
+    # Handle general error
+```
+
+### Database Operations
+```python
+def safe_database_operation(self, operation):
+    try:
+        with self.connection:
+            return operation()
+    except sqlite3.Error as e:
+        logger.error(f"Database error: {e}")
+        raise DatabaseError(f"Database operation failed: {e}")
+```
+
+### GUI Background Operations
+```python
+def perform_background_operation(self):
+    self.worker = BackgroundWorker()
+    self.worker.finished.connect(self.on_operation_complete)
+    self.worker.error.connect(self.on_operation_error)
+    self.worker.start()
+```
+
+## Branching Policy
+- **Never commit directly to main.**
+- All changes must be made in feature branches and merged via pull request after code review and successful tests.
+
+## Branching Workflow Enforcement
+- Before working on any feature or bug, the assistant must create a new branch.
+- The assistant must never work directly on the master (main) branch.
+
+## File Structure Reminder
+```
+src/ocrinvoice/
+├── __init__.py
+├── __main__.py
+├── config.py
+├── cli/
+├── gui/
+├── business/
+├── parsers/
+├── core/
+└── utils/
+```
+
+## Performance Targets
+- OCR processing: <30 seconds per page
+- Database queries: <100ms for typical operations
+- GUI responsiveness: <100ms for UI updates
+- Memory usage: <500MB for typical usage
+
+## Security Considerations
+- All data stored locally (no network access required)
+- Validate all user inputs and file data
+- Use parameterized queries to prevent SQL injection
+- Respect file system permissions
+
+## Testing Strategy
+- Unit tests for all components
+- Integration tests for complete workflows
+- GUI tests with pytest-qt
+- Performance benchmarks
+- User acceptance testing
+
+## Deployment Notes
+- Use PyInstaller for standalone executables
+- Include Tesseract OCR in distribution
+- Create Windows installer with NSIS
+- Set up CI/CD with GitHub Actions
+
+## Common Issues and Solutions
+- **OCR Accuracy**: Implement image preprocessing and multiple OCR attempts
+- **Performance**: Use background threads for long operations
+- **Memory Usage**: Proper cleanup of temporary files and resources
+- **Cross-Platform**: Test on target platforms, focus on Windows initially
+
+## Future Enhancements
+- Batch processing for multiple PDFs
+- Cloud OCR integration
+- Advanced reporting and analytics
+- REST API for external integrations
+- Mobile application support
+
+Remember to check the agile-plan.md for current sprint goals and the ocr-invoice-spec.md for detailed technical specifications. 
+
+## Commit Message Policy
+- All commit messages must be reviewed 100% of the time, with no exceptions.
+- An explicit, approved commit message is required before any commit is made. 
+
+## Education and Knowledge Transfer Policy
+- The assistant must actively educate the user on Python and Qt concepts, idioms, and best practices.
+- Assume the user is a senior Java programmer and highlight differences and similarities between Java and Python approaches.
+- Before each commit, the assistant will quiz the user on relevant Python or Qt concepts used in the changes, to reinforce learning and ensure understanding. 
