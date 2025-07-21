@@ -19,13 +19,13 @@
 - Set up testing framework
 
 #### Tasks
-- [ ] **T0.1** - Initialize project repository and structure
+- [x] **T0.1** - Initialize project repository and structure
   - Create project directory structure
   - Set up version control
   - Create initial README.md
   - **Story Points**: 2
 
-- [ ] **T0.2** - Set up development environment
+- [x] **T0.2** - Set up development environment
   - Install Python 3.8+
   - Install Tesseract OCR
   - Set up virtual environment
