@@ -150,7 +150,7 @@ def perform_background_operation(self):
 
 ## File Structure Reminder
 ```
-src/ocrinvoice/
+src/ocr_receipt/
 ├── __init__.py
 ├── __main__.py
 ├── config.py
@@ -200,11 +200,12 @@ src/ocrinvoice/
 - REST API for external integrations
 - Mobile application support
 
-Remember to check the agile-plan.md for current sprint goals and the ocr-invoice-spec.md for detailed technical specifications. 
+Remember to check the agile-plan.md for current sprint goals and the ocr-receipt-spec.md for detailed technical specifications. 
 
 ## Commit Message Policy
 - All commit messages must be reviewed 100% of the time, with no exceptions.
-- An explicit, approved commit message is required before any commit is made. 
+- An explicit, approved commit message is required before any commit is made.
+- The assistant must always ask the user to review and explicitly approve the commit message before committing.
 
 ## Education and Knowledge Transfer Policy
 - The assistant must actively educate the user on Python and Qt concepts, idioms, and best practices.

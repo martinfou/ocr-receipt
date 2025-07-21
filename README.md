@@ -22,7 +22,7 @@ The OCR Invoice Parser is a desktop application designed to extract structured d
 
 ## Project Structure
 ```
-src/ocrinvoice/
+src/ocr_receipt/
 ├── __init__.py
 ├── __main__.py
 ├── config.py
@@ -91,7 +91,7 @@ src/ocrinvoice/
 3. Clone this repository
 4. Install dependencies: `pip install -r requirements.txt`
 5. Run tests: `pytest tests/`
-6. Start the application: `python -m ocrinvoice`
+6. Start the application: `python -m ocr_receipt`
 
 ## License
 MIT License 
