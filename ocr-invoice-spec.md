@@ -196,7 +196,7 @@ gui:
   show_preview: true
 
 database:
-  path: "config/ocrinvoice.db"
+  path: "config/ocr_receipt.db"
   backup_interval: 24  # hours
   max_backup_age: 30   # days
 ```
@@ -685,7 +685,7 @@ class BusinessKeywordsTab(QWidget):
 ## File Structure
 
 ```
-src/ocrinvoice/
+src/ocr_receipt/
 ├── __init__.py
 ├── __main__.py
 ├── config.py
@@ -790,10 +790,10 @@ src/ocrinvoice/
 ## Configuration
 
 ### Environment Variables
-- `OCRINVOICE_CONFIG_PATH`: Path to configuration file
-- `OCRINVOICE_DB_PATH`: Path to SQLite database
-- `OCRINVOICE_TESSERACT_PATH`: Path to Tesseract executable
-- `OCRINVOICE_OCR_LANGUAGE`: OCR language (default: eng)
+- `OCR_RECEIPT_CONFIG_PATH`: Path to configuration file
+- `OCR_RECEIPT_DB_PATH`: Path to SQLite database
+- `OCR_RECEIPT_TESSERACT_PATH`: Path to Tesseract executable
+- `OCR_RECEIPT_OCR_LANGUAGE`: OCR language (default: eng)
 
 ### Configuration File
 The application uses YAML configuration files with the following structure:
@@ -830,7 +830,7 @@ The application uses YAML configuration files with the following structure:
 3. Clone repository
 4. Install dependencies: `pip install -r requirements.txt`
 5. Run tests: `pytest tests/`
-6. Start application: `python -m ocrinvoice`
+6. Start application: `python -m ocr_receipt`
 
 ### Production Build
 1. **PyInstaller**: Create standalone executables

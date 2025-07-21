@@ -13,7 +13,7 @@ The OCR Invoice Parser is a desktop application designed to extract structured d
 - CLI for batch and automated processing
 
 ## Technology Stack
-- Python 3.8+
+- Python 3.9+
 - PyQt6
 - SQLite
 - Tesseract OCR
@@ -22,7 +22,7 @@ The OCR Invoice Parser is a desktop application designed to extract structured d
 
 ## Project Structure
 ```
-src/ocrinvoice/
+src/ocr_receipt/
 ├── __init__.py
 ├── __main__.py
 ├── config.py
@@ -86,12 +86,13 @@ src/ocrinvoice/
 ```
 
 ## Getting Started
-1. Install Python 3.8+
+1. Install Python 3.9+
 2. Install Tesseract OCR
 3. Clone this repository
-4. Install dependencies: `pip install -r requirements.txt`
-5. Run tests: `pytest tests/`
-6. Start the application: `python -m ocrinvoice`
+4. Install Poetry: https://python-poetry.org/docs/#installation
+5. Install dependencies: `poetry install`
+6. Run tests: `poetry run pytest tests/`
+7. Start the application: `poetry run python -m ocr_receipt`
 
 ## License
 MIT License 
