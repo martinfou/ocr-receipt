@@ -81,4 +81,24 @@ class DatabaseManager:
             self.connection.commit()
         except sqlite3.Error as e:
             logging.error(f"Database batch query failed: {e}\nQuery: {query}")
-            raise DatabaseError(f"Batch query failed: {e}") 
+            raise DatabaseError(f"Batch query failed: {e}")
+
+    def add_keyword(self, business_id: int, keyword: str, match_type: str = "exact", is_case_sensitive: int = 0) -> bool:
+        """
+        Add a keyword for a business.
+        :param business_id: ID of the business
+        :param keyword: Keyword string
+        :param match_type: 'exact' or 'variant'
+        :param is_case_sensitive: 0 (case-insensitive) or 1 (case-sensitive)
+        :return: True if added, False if error
+        """
+        try:
+            query = (
+                "INSERT INTO business_keywords (business_id, keyword, match_type, is_case_sensitive) "
+                "VALUES (?, ?, ?, ?)"
+            )
+            self.execute_query(query, (business_id, keyword, match_type, is_case_sensitive))
+            return True
+        except Exception as e:
+            logging.error(f"Failed to add keyword: {e}")
+            return False 
