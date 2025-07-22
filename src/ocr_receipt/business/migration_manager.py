@@ -127,14 +127,15 @@ class MigrationManager:
             
             # Get applied migrations using the MigrationList filter method
             applied_migrations = migrations.filter(lambda m: backend.is_applied(m))
-            
+
             if not applied_migrations:
                 self.logger.info("No applied migrations to rollback")
                 return []
-            
-            # Reverse to get the most recent first
+
+            # Convert to list before reversing
+            applied_migrations = list(applied_migrations)
             applied_migrations.reverse()
-            
+
             # Limit to requested count
             migrations_to_rollback = applied_migrations[:count]
             

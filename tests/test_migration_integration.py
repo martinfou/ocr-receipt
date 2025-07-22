@@ -94,7 +94,7 @@ class TestMigrationIntegration:
         # Rollback the last migration
         rolled_back = migration_manager.rollback_migrations(count=1, force=True)
         assert len(rolled_back) == 1
-        assert "001_initial_schema" in rolled_back
+        assert "002_add_case_sensitive_to_business_and_keywords" in rolled_back
 
         # Check that database is no longer initialized
         assert not migration_manager.is_database_initialized()
