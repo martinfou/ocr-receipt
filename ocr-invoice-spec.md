@@ -330,7 +330,7 @@ class CategoryManager:
     def __init__(self, db_manager: DatabaseManager):
         self.db_manager = db_manager
     
-    def add_category(self, name: str, description: Optional[str] = None, cra_code: Optional[str] = None) -> int:
+    def add_category(self, name: str, description: Optional[str] = None, category_code: Optional[str] = None) -> int:
         """Add a new category."""
         pass
     
@@ -765,7 +765,7 @@ src/ocr_receipt/
 ### 3. Project & Category Management
 - **Projects**: Organize invoices by projects
 - **Categories**: Categorize invoices for reporting
-- **CRA Codes**: Support for Canadian Revenue Agency codes
+- **Category Codes**: Support for custom category codes
 - **Hierarchical Organization**: Nested project and category structures
 
 ### 4. File Naming

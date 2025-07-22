@@ -104,5 +104,19 @@ src/ocr_receipt/
   poetry run pytest
   ```
 
+### Database Migrations
+- Apply migrations to create/update database schema:
+  ```bash
+  poetry run yoyo apply --database sqlite:///your_database.db migrations/
+  ```
+- List applied migrations:
+  ```bash
+  poetry run yoyo list --database sqlite:///your_database.db
+  ```
+- Rollback migrations (if needed):
+  ```bash
+  poetry run yoyo rollback --database sqlite:///your_database.db
+  ```
+
 ## License
 MIT License 

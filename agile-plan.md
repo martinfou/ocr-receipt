@@ -70,7 +70,7 @@
   - Add database initialization
   - **Story Points**: 8
 
-- [ ] **T1.2** - Create database schema
+- [x] **T1.2** - Create database schema
   - Create migrations directory and initial migration script using yoyo-migrations
   - Implement businesses table
   - Implement business_keywords table
@@ -169,7 +169,7 @@
 - [ ] **T3.3** - Implement Category Manager
   - Create CategoryManager class
   - Add category CRUD operations
-  - Implement CRA code support
+  - Implement code support
   - **Story Points**: 5
 
 - [ ] **T3.4** - Create PDF Metadata Manager
@@ -384,7 +384,7 @@
 - [ ] **T8.2** - Create Categories Tab
   - Implement CategoriesTab class
   - Add category management interface
-  - Implement CRA code support
+  - Implement code support
   - **Story Points**: 8
 
 - [ ] **T8.3** - Implement Tables and Dialogs
