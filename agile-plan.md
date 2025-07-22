@@ -203,17 +203,17 @@
   - Create metadata validation
   - **Story Points**: 5
 
-- [ ] **T3.5** - Add business logic tests
+- [x] **T3.5** - Add business logic tests
   - Unit tests for all managers
   - Integration tests
   - Performance tests
   - **Story Points**: 5
 
 #### Definition of Done
-- [ ] All business logic managers implemented
-- [ ] CRUD operations working
-- [ ] Data validation functional
-- [ ] Tests passing with >90% coverage
+- [x] All business logic managers implemented
+- [x] CRUD operations working
+- [x] Data validation functional
+- [x] Tests passing with >90% coverage
 
 ---
 
