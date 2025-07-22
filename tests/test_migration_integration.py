@@ -97,21 +97,21 @@ class TestMigrationIntegration:
         assert "002_add_case_sensitive_to_business_and_keywords" in rolled_back
 
         # Check that database is no longer initialized
-        assert not migration_manager.is_database_initialized()
+        # assert not migration_manager.is_database_initialized()
 
-        # Verify tables were dropped
-        with database_manager:
-            cursor = database_manager.execute_query("SELECT name FROM sqlite_master WHERE type='table'")
-            tables = [row[0] for row in cursor.fetchall()]
+        # Verify tables were dropped (not applicable for single migration rollback)
+        # with database_manager:
+        #     cursor = database_manager.execute_query("SELECT name FROM sqlite_master WHERE type='table'")
+        #     tables = [row[0] for row in cursor.fetchall()]
 
-            # Check that our tables no longer exist (except yoyo's tracking table)
-            assert "businesses" not in tables
-            assert "business_keywords" not in tables
-            assert "projects" not in tables
-            assert "categories" not in tables
-            assert "invoice_metadata" not in tables
-            # Note: yoyo tracking table might not exist if rollback was complete
-            # assert "_yoyo_migration" in tables
+        #     # Check that our tables no longer exist (except yoyo's tracking table)
+        #     assert "businesses" not in tables
+        #     assert "business_keywords" not in tables
+        #     assert "projects" not in tables
+        #     assert "categories" not in tables
+        #     assert "invoice_metadata" not in tables
+        #     # Note: yoyo tracking table might not exist if rollback was complete
+        #     # assert "_yoyo_migration" in tables
 
         # Check that the initial migration is still applied, and only the most recent migration is pending
         applied = migration_manager.get_applied_migrations()
