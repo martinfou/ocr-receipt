@@ -207,6 +207,9 @@ Remember to check the agile-plan.md for current sprint goals and the ocr-receipt
 - An explicit, approved commit message is required before any commit is made.
 - The assistant must always ask the user to review and explicitly approve the commit message before committing.
 
+## Commit Message Title Rule
+- All commit messages must start with the title of a task, e.g., '**T3.1** - Implement Business Mapping Manager'.
+
 ## Education and Knowledge Transfer Policy
 - The assistant must actively educate the user on Python and Qt concepts, idioms, and best practices.
 - Assume the user is a senior Java programmer and highlight differences and similarities between Java and Python approaches.
