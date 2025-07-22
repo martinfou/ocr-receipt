@@ -113,6 +113,14 @@ class TestMigrationIntegration:
             # Note: yoyo tracking table might not exist if rollback was complete
             # assert "_yoyo_migration" in tables
 
+        # Check that the initial migration is still applied, and only the most recent migration is pending
+        applied = migration_manager.get_applied_migrations()
+        pending = migration_manager.get_pending_migrations()
+        applied_ids = [m['id'] for m in applied]
+        pending_ids = [m['id'] for m in pending]
+        assert "001_initial_schema" in applied_ids
+        assert "002_add_case_sensitive_to_business_and_keywords" in pending_ids
+
     def test_mark_migration_applied(self, migration_manager):
         """Test marking a migration as applied without running it."""
         # Check initial state
