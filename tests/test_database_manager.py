@@ -111,6 +111,19 @@ def test_delete_project_not_exist(project_manager):
     with pytest.raises(ValueError):
         project_manager.delete_project(999)
 
+def test_delete_project_referenced_by_metadata(db_manager, project_manager, pdf_metadata_manager):
+    # Create a project and reference it in metadata
+    pid = project_manager.create_project("RefProj")
+    data = {"business": "Biz", "project_id": pid}
+    mid = pdf_metadata_manager.create_metadata("/tmp/withproj.pdf", data)
+    # Attempt to delete the project (should raise an error due to FK constraint)
+    with pytest.raises(Exception):
+        project_manager.delete_project(pid)
+    # Clean up: delete metadata, then project
+    pdf_metadata_manager.delete_metadata(mid)
+    project_manager.delete_project(pid)
+    assert project_manager.get_project_by_id(pid) is None
+
 def test_create_category(category_manager):
     category_id = category_manager.create_category("Test Category", "A test category.", "C001")
     category = category_manager.get_category_by_id(category_id)
@@ -168,6 +181,19 @@ def test_delete_category(category_manager):
 def test_delete_category_not_exist(category_manager):
     with pytest.raises(ValueError):
         category_manager.delete_category(999)
+
+def test_delete_category_referenced_by_metadata(db_manager, category_manager, pdf_metadata_manager):
+    # Create a category and reference it in metadata
+    cid = category_manager.create_category("RefCat")
+    data = {"business": "Biz", "category_id": cid}
+    mid = pdf_metadata_manager.create_metadata("/tmp/withcat.pdf", data)
+    # Attempt to delete the category (should raise an error due to FK constraint)
+    with pytest.raises(Exception):
+        category_manager.delete_category(cid)
+    # Clean up: delete metadata, then category
+    pdf_metadata_manager.delete_metadata(mid)
+    category_manager.delete_category(cid)
+    assert category_manager.get_category_by_id(cid) is None
 
 def test_create_metadata(pdf_metadata_manager):
     data = {"business": "TestCo", "total": 123.45, "date": "2024-06-01", "invoice_number": "INV-001"}
