@@ -2,7 +2,7 @@
 
 ## Overview
 
-The OCR Invoice Parser is a desktop application that extracts structured data from PDF invoices using OCR (Optical Character Recognition) technology. The application provides both a command-line interface (CLI) and a graphical user interface (GUI) built with PyQt6.
+The OCR Invoice Parser is a desktop application that extracts structured data from PDF invoices using OCR (Optical Character Recognition) technology. The application processes PDF files exclusively, converting PDF pages to images for OCR processing. The application provides both a command-line interface (CLI) and a graphical user interface (GUI) built with PyQt6.
 
 ## Architecture Overview
 
@@ -53,9 +53,9 @@ The OCR Invoice Parser is a desktop application that extracts structured data fr
 - **Python 3.8+**: Primary programming language
 - **PyQt6**: GUI framework for desktop application
 - **SQLite**: Embedded database for data persistence
-- **Tesseract OCR**: OCR engine for text extraction
-- **pdf2image**: PDF to image conversion
-- **OpenCV**: Image processing and manipulation
+- **Tesseract OCR**: OCR engine for PDF text extraction
+- **pdf2image**: PDF to image conversion for OCR processing
+- **OpenCV**: Image processing and manipulation for PDF pages
 
 ### Key Dependencies
 - **pytesseract**: Python wrapper for Tesseract OCR
@@ -420,47 +420,67 @@ class InvoiceParser(BaseParser):
 #### OCR Engine
 ```python
 class OCREngine:
-    """OCR engine using Tesseract."""
+    """OCR engine using Tesseract for PDF processing."""
     
     def __init__(self, config: Dict[str, Any]):
         self.language = config.get("ocr", {}).get("language", "eng")
         self.tesseract_path = config.get("ocr", {}).get("tesseract_path", "")
         self.confidence_threshold = config.get("ocr", {}).get("confidence_threshold", 0.6)
     
-    def extract_text(self, image_path: str) -> str:
-        """Extract text from image using Tesseract."""
+    def extract_text_from_pdf(self, pdf_path: str) -> str:
+        """Extract text from all pages in PDF using Tesseract OCR."""
         pass
     
-    def extract_text_with_confidence(self, image_path: str) -> Tuple[str, float]:
-        """Extract text with confidence score."""
+    def extract_text_from_pdf_with_confidence(self, pdf_path: str) -> Tuple[str, float]:
+        """Extract text from all pages in PDF with overall confidence score."""
+        pass
+    
+    def extract_text_from_pdf_page(self, pdf_path: str, page_number: int) -> str:
+        """Extract text from specific PDF page."""
+        pass
+    
+    def extract_text_from_pdf_page_with_confidence(self, pdf_path: str, page_number: int) -> Tuple[str, float]:
+        """Extract text from specific PDF page with confidence score."""
+        pass
+    
+    def get_pdf_page_count(self, pdf_path: str) -> int:
+        """Get the number of pages in a PDF."""
+        pass
+    
+    def extract_text_from_all_pages(self, pdf_path: str) -> List[Tuple[int, str, float]]:
+        """Extract text from all pages with page numbers and confidence scores."""
         pass
 ```
 
 #### Image Processor
 ```python
 class ImageProcessor:
-    """Process images for better OCR results."""
+    """Process PDF pages for better OCR results."""
     
     def __init__(self, config: Dict[str, Any]):
         self.config = config
     
-    def preprocess_image(self, image: np.ndarray) -> np.ndarray:
-        """Preprocess image for better OCR."""
-        pass
-    
     def convert_pdf_to_images(self, pdf_path: str) -> List[np.ndarray]:
-        """Convert PDF pages to images."""
+        """Convert PDF pages to images for OCR processing."""
         pass
     
-    def enhance_image(self, image: np.ndarray) -> np.ndarray:
-        """Enhance image quality for OCR."""
+    def preprocess_pdf_page(self, image: np.ndarray) -> np.ndarray:
+        """Preprocess PDF page image for better OCR."""
+        pass
+    
+    def enhance_pdf_page(self, image: np.ndarray) -> np.ndarray:
+        """Enhance PDF page image quality for OCR."""
+        pass
+    
+    def get_pdf_page_count(self, pdf_path: str) -> int:
+        """Get the number of pages in a PDF."""
         pass
 ```
 
 #### Text Extractor
 ```python
 class TextExtractor:
-    """Extract and process text from images."""
+    """Extract and process text from PDF files."""
     
     def __init__(self, config: Dict[str, Any]):
         self.config = config
@@ -468,11 +488,19 @@ class TextExtractor:
         self.image_processor = ImageProcessor(config)
     
     def extract_from_pdf(self, pdf_path: str) -> str:
-        """Extract text from PDF file."""
+        """Extract text from all pages in PDF file using OCR."""
         pass
     
-    def extract_from_image(self, image_path: str) -> str:
-        """Extract text from image file."""
+    def extract_from_pdf_page(self, pdf_path: str, page_number: int) -> str:
+        """Extract text from specific PDF page."""
+        pass
+    
+    def extract_from_pdf_with_confidence(self, pdf_path: str) -> Tuple[str, float]:
+        """Extract text from all pages in PDF with overall confidence score."""
+        pass
+    
+    def extract_from_all_pages(self, pdf_path: str) -> List[Tuple[int, str, float]]:
+        """Extract text from all pages with page numbers and confidence scores."""
         pass
 ```
 
@@ -517,6 +545,46 @@ class OCRMainWindow(QMainWindow):
     def _setup_ui(self):
         """Set up the user interface."""
         self.setWindowTitle("OCR Invoice Parser")
+        self._setup_page_navigation()
+    
+    def _setup_page_navigation(self):
+        """Set up PDF page navigation controls."""
+        # Page navigation toolbar
+        self.page_toolbar = QToolBar("Page Navigation")
+        self.addToolBar(self.page_toolbar)
+        
+        # Page navigation controls
+        self.prev_page_btn = QPushButton("Previous Page")
+        self.next_page_btn = QPushButton("Next Page")
+        self.page_label = QLabel("Page 1 of 1")
+        self.page_spinbox = QSpinBox()
+        
+        # Add controls to toolbar
+        self.page_toolbar.addWidget(self.prev_page_btn)
+        self.page_toolbar.addWidget(self.page_spinbox)
+        self.page_toolbar.addWidget(self.page_label)
+        self.page_toolbar.addWidget(self.next_page_btn)
+        
+        # Connect signals
+        self.prev_page_btn.clicked.connect(self._previous_page)
+        self.next_page_btn.clicked.connect(self._next_page)
+        self.page_spinbox.valueChanged.connect(self._go_to_page)
+    
+    def _previous_page(self):
+        """Navigate to previous page."""
+        pass
+    
+    def _next_page(self):
+        """Navigate to next page."""
+        pass
+    
+    def _go_to_page(self, page_number: int):
+        """Navigate to specific page."""
+        pass
+    
+    def _update_page_navigation(self, current_page: int, total_pages: int):
+        """Update page navigation controls."""
+        pass
         self.setMinimumSize(1200, 600)
         
         # Create tab widget
@@ -571,9 +639,41 @@ class SinglePDFTab(QWidget):
         file_layout.addWidget(self.browse_button)
         layout.addWidget(file_group)
         
+        # Main content area (PDF viewer + data panel)
+        content_layout = QHBoxLayout()
+        
+        # PDF viewer with page navigation
+        pdf_group = QGroupBox("PDF Viewer")
+        pdf_layout = QVBoxLayout(pdf_group)
+        
+        # Page navigation controls
+        nav_layout = QHBoxLayout()
+        self.prev_page_btn = QPushButton("← Previous")
+        self.next_page_btn = QPushButton("Next →")
+        self.page_label = QLabel("Page 1 of 1")
+        self.page_spinbox = QSpinBox()
+        self.page_spinbox.setMinimum(1)
+        self.page_spinbox.setMaximum(1)
+        
+        nav_layout.addWidget(self.prev_page_btn)
+        nav_layout.addWidget(self.page_spinbox)
+        nav_layout.addWidget(self.page_label)
+        nav_layout.addWidget(self.next_page_btn)
+        nav_layout.addStretch()
+        
+        pdf_layout.addLayout(nav_layout)
+        
+        # PDF display area
+        self.pdf_viewer = PDFViewer()
+        pdf_layout.addWidget(self.pdf_viewer)
+        
+        content_layout.addWidget(pdf_group, 2)  # 2/3 of width
+        
         # Data panel
         self.data_panel = DataPanel()
-        layout.addWidget(self.data_panel)
+        content_layout.addWidget(self.data_panel, 1)  # 1/3 of width
+        
+        layout.addLayout(content_layout)
         
         # Action buttons
         button_layout = QHBoxLayout()
@@ -588,6 +688,141 @@ class SinglePDFTab(QWidget):
         self.browse_button.clicked.connect(self._on_browse_file)
         self.process_button.clicked.connect(self._on_process_pdf)
         self.force_ocr_button.clicked.connect(self._on_force_ocr)
+        
+        # Page navigation connections
+        self.prev_page_btn.clicked.connect(self._previous_page)
+        self.next_page_btn.clicked.connect(self._next_page)
+        self.page_spinbox.valueChanged.connect(self._go_to_page)
+    
+    def _previous_page(self):
+        """Navigate to previous page."""
+        current_page = self.page_spinbox.value()
+        if current_page > 1:
+            self.page_spinbox.setValue(current_page - 1)
+    
+    def _next_page(self):
+        """Navigate to next page."""
+        current_page = self.page_spinbox.value()
+        max_page = self.page_spinbox.maximum()
+        if current_page < max_page:
+            self.page_spinbox.setValue(current_page + 1)
+    
+    def _go_to_page(self, page_number: int):
+        """Navigate to specific page."""
+        self.pdf_viewer.display_page(page_number)
+        self._update_page_navigation()
+    
+    def _update_page_navigation(self):
+        """Update page navigation controls."""
+        current_page = self.page_spinbox.value()
+        total_pages = self.page_spinbox.maximum()
+        self.page_label.setText(f"Page {current_page} of {total_pages}")
+        
+        # Enable/disable navigation buttons
+        self.prev_page_btn.setEnabled(current_page > 1)
+        self.next_page_btn.setEnabled(current_page < total_pages)
+    
+    def load_pdf(self, pdf_path: str):
+        """Load PDF file and set up navigation."""
+        self.pdf_viewer.load_pdf(pdf_path)
+        total_pages = self.pdf_viewer.get_page_count()
+        self.page_spinbox.setMaximum(total_pages)
+        self.page_spinbox.setValue(1)
+        self._update_page_navigation()
+```
+
+#### PDF Viewer
+```python
+class PDFViewer(QWidget):
+    """Widget for displaying PDF pages with navigation."""
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.pdf_path = None
+        self.current_page = 1
+        self.total_pages = 0
+        self.page_images = {}  # Cache for page images
+        self._setup_ui()
+    
+    def _setup_ui(self):
+        """Set up the user interface."""
+        layout = QVBoxLayout(self)
+        
+        # PDF display area
+        self.pdf_label = QLabel()
+        self.pdf_label.setAlignment(Qt.AlignCenter)
+        self.pdf_label.setMinimumSize(400, 600)
+        self.pdf_label.setStyleSheet("border: 1px solid #ccc; background: white;")
+        layout.addWidget(self.pdf_label)
+        
+        # Zoom controls
+        zoom_layout = QHBoxLayout()
+        self.zoom_out_btn = QPushButton("Zoom Out")
+        self.zoom_in_btn = QPushButton("Zoom In")
+        self.zoom_fit_btn = QPushButton("Fit to View")
+        self.zoom_label = QLabel("100%")
+        
+        zoom_layout.addWidget(self.zoom_out_btn)
+        zoom_layout.addWidget(self.zoom_label)
+        zoom_layout.addWidget(self.zoom_in_btn)
+        zoom_layout.addWidget(self.zoom_fit_btn)
+        zoom_layout.addStretch()
+        
+        layout.addLayout(zoom_layout)
+        
+        # Connect zoom signals
+        self.zoom_out_btn.clicked.connect(self._zoom_out)
+        self.zoom_in_btn.clicked.connect(self._zoom_in)
+        self.zoom_fit_btn.clicked.connect(self._zoom_fit)
+    
+    def load_pdf(self, pdf_path: str):
+        """Load PDF file and display first page."""
+        self.pdf_path = pdf_path
+        self.total_pages = self._get_page_count()
+        self.current_page = 1
+        self.page_images.clear()  # Clear cache
+        self.display_page(1)
+    
+    def display_page(self, page_number: int):
+        """Display specific page of the PDF."""
+        if not self.pdf_path or page_number < 1 or page_number > self.total_pages:
+            return
+        
+        self.current_page = page_number
+        
+        # Check cache first
+        if page_number not in self.page_images:
+            self.page_images[page_number] = self._load_page_image(page_number)
+        
+        # Display the page
+        pixmap = self.page_images[page_number]
+        self.pdf_label.setPixmap(pixmap)
+    
+    def get_page_count(self) -> int:
+        """Get the total number of pages in the PDF."""
+        return self.total_pages
+    
+    def _get_page_count(self) -> int:
+        """Internal method to get page count."""
+        # Implementation will use pdf2image or similar
+        pass
+    
+    def _load_page_image(self, page_number: int) -> QPixmap:
+        """Load page image and convert to QPixmap."""
+        # Implementation will use pdf2image to convert PDF page to image
+        pass
+    
+    def _zoom_out(self):
+        """Zoom out the current page."""
+        pass
+    
+    def _zoom_in(self):
+        """Zoom in the current page."""
+        pass
+    
+    def _zoom_fit(self):
+        """Fit the current page to the view."""
+        pass
 ```
 
 #### Data Panel

@@ -35,7 +35,7 @@
 
 ### GUI Layer (PyQt6)
 - **Main Window**: Tabbed interface with 6 main tabs
-- **Single PDF Tab**: File processing and data editing
+- **Single PDF Tab**: File processing, data editing, and PDF viewer with page navigation
 - **Business Keywords Tab**: Keyword management and statistics
 - **Projects Tab**: Project management interface
 - **Categories Tab**: Category management interface
@@ -72,10 +72,10 @@
 - Handle long-running operations in background threads
 - Provide clear user feedback and error messages
 
-### OCR and Image Processing
+### OCR and PDF Processing
 - Use Tesseract OCR with confidence scoring
-- Implement image preprocessing for better OCR results
-- Support multiple image formats (PDF, PNG, JPG)
+- Implement PDF page preprocessing for better OCR results
+- Support PDF files exclusively (convert pages to images for OCR)
 - Handle OCR failures gracefully with retry logic
 - Cache OCR results when appropriate
 
