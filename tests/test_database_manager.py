@@ -2,6 +2,7 @@ import pytest
 from ocr_receipt.business.database_manager import DatabaseManager
 from ocr_receipt.business.project_manager import ProjectManager
 from src.ocr_receipt.business.category_manager import CategoryManager
+from src.ocr_receipt.business.pdf_metadata_manager import PDFMetadataManager
 
 @pytest.fixture
 def db_manager():
@@ -32,6 +33,28 @@ def category_manager(db_manager):
         )
     """)
     return CategoryManager(db_manager)
+
+@pytest.fixture
+def pdf_metadata_manager(db_manager):
+    db_manager.execute_query("""
+        CREATE TABLE invoice_metadata (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            file_path TEXT UNIQUE NOT NULL,
+            business TEXT,
+            total REAL,
+            date TEXT,
+            invoice_number TEXT,
+            check_number TEXT,
+            raw_text TEXT,
+            parser_type TEXT,
+            confidence REAL,
+            is_valid BOOLEAN DEFAULT FALSE,
+            project_id INTEGER,
+            category_id INTEGER,
+            extracted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    return PDFMetadataManager(db_manager)
 
 def test_create_project(project_manager):
     project_id = project_manager.create_project("Test Project", "A test project.")
@@ -144,4 +167,67 @@ def test_delete_category(category_manager):
 
 def test_delete_category_not_exist(category_manager):
     with pytest.raises(ValueError):
-        category_manager.delete_category(999) 
+        category_manager.delete_category(999)
+
+def test_create_metadata(pdf_metadata_manager):
+    data = {"business": "TestCo", "total": 123.45, "date": "2024-06-01", "invoice_number": "INV-001"}
+    metadata_id = pdf_metadata_manager.create_metadata("/tmp/test.pdf", data)
+    metadata = pdf_metadata_manager.get_metadata_by_id(metadata_id)
+    assert metadata is not None
+    assert metadata["file_path"] == "/tmp/test.pdf"
+    assert metadata["business"] == "TestCo"
+    assert metadata["total"] == 123.45
+    assert metadata["invoice_number"] == "INV-001"
+
+def test_create_metadata_duplicate_file(pdf_metadata_manager):
+    data = {"business": "A"}
+    pdf_metadata_manager.create_metadata("/tmp/dup.pdf", data)
+    with pytest.raises(ValueError):
+        pdf_metadata_manager.create_metadata("/tmp/dup.pdf", data)
+
+def test_create_metadata_empty_file(pdf_metadata_manager):
+    with pytest.raises(ValueError):
+        pdf_metadata_manager.create_metadata("", {"business": "A"})
+
+def test_get_metadata_by_file_path(pdf_metadata_manager):
+    data = {"business": "FindMe"}
+    pdf_metadata_manager.create_metadata("/tmp/findme.pdf", data)
+    metadata = pdf_metadata_manager.get_metadata_by_file_path("/tmp/findme.pdf")
+    assert metadata is not None
+    assert metadata["business"] == "FindMe"
+
+def test_list_metadata(pdf_metadata_manager):
+    pdf_metadata_manager.create_metadata("/tmp/a.pdf", {"business": "A"})
+    pdf_metadata_manager.create_metadata("/tmp/b.pdf", {"business": "B"})
+    all_metadata = pdf_metadata_manager.list_metadata()
+    assert len(all_metadata) == 2
+    file_paths = [m["file_path"] for m in all_metadata]
+    assert "/tmp/a.pdf" in file_paths and "/tmp/b.pdf" in file_paths
+
+def test_update_metadata(pdf_metadata_manager):
+    data = {"business": "Old", "total": 1.0}
+    mid = pdf_metadata_manager.create_metadata("/tmp/upd.pdf", data)
+    pdf_metadata_manager.update_metadata(mid, {"business": "New", "total": 2.0})
+    metadata = pdf_metadata_manager.get_metadata_by_id(mid)
+    assert metadata["business"] == "New"
+    assert metadata["total"] == 2.0
+
+def test_update_metadata_no_fields(pdf_metadata_manager):
+    data = {"business": "NoUpdate"}
+    mid = pdf_metadata_manager.create_metadata("/tmp/noupd.pdf", data)
+    with pytest.raises(ValueError):
+        pdf_metadata_manager.update_metadata(mid, {})
+
+def test_update_metadata_not_exist(pdf_metadata_manager):
+    with pytest.raises(ValueError):
+        pdf_metadata_manager.update_metadata(999, {"business": "X"})
+
+def test_delete_metadata(pdf_metadata_manager):
+    data = {"business": "ToDelete"}
+    mid = pdf_metadata_manager.create_metadata("/tmp/del.pdf", data)
+    pdf_metadata_manager.delete_metadata(mid)
+    assert pdf_metadata_manager.get_metadata_by_id(mid) is None
+
+def test_delete_metadata_not_exist(pdf_metadata_manager):
+    with pytest.raises(ValueError):
+        pdf_metadata_manager.delete_metadata(999) 
