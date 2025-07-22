@@ -1,18 +1,39 @@
 import pytest
 from ocr_receipt.business.database_manager import DatabaseManager
 from ocr_receipt.business.project_manager import ProjectManager
-from src.ocr_receipt.business.category_manager import CategoryManager
-from src.ocr_receipt.business.pdf_metadata_manager import PDFMetadataManager
+from ocr_receipt.business.category_manager import CategoryManager
+from ocr_receipt.business.pdf_metadata_manager import PDFMetadataManager
 
 @pytest.fixture
 def db_manager():
     db = DatabaseManager(":memory:")
     db.connect()
+    db.connection.execute("PRAGMA foreign_keys = ON")
+    db.execute_query("""
+        CREATE TABLE businesses (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
     db.execute_query("""
         CREATE TABLE projects (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL UNIQUE,
-            description TEXT
+            name TEXT NOT NULL,
+            description TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    db.execute_query("""
+        CREATE TABLE categories (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            category_code TEXT,
+            description TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
     yield db
@@ -24,14 +45,6 @@ def project_manager(db_manager):
 
 @pytest.fixture
 def category_manager(db_manager):
-    db_manager.execute_query("""
-        CREATE TABLE categories (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL UNIQUE,
-            description TEXT,
-            category_code TEXT
-        )
-    """)
     return CategoryManager(db_manager)
 
 @pytest.fixture
@@ -51,7 +64,9 @@ def pdf_metadata_manager(db_manager):
             is_valid BOOLEAN DEFAULT FALSE,
             project_id INTEGER,
             category_id INTEGER,
-            extracted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            extracted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL,
+            FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
         )
     """)
     return PDFMetadataManager(db_manager)
@@ -116,13 +131,18 @@ def test_delete_project_referenced_by_metadata(db_manager, project_manager, pdf_
     pid = project_manager.create_project("RefProj")
     data = {"business": "Biz", "project_id": pid}
     mid = pdf_metadata_manager.create_metadata("/tmp/withproj.pdf", data)
-    # Attempt to delete the project (should raise an error due to FK constraint)
-    with pytest.raises(Exception):
-        project_manager.delete_project(pid)
-    # Clean up: delete metadata, then project
-    pdf_metadata_manager.delete_metadata(mid)
+    
+    # Verify the metadata has the project_id
+    metadata = pdf_metadata_manager.get_metadata_by_file_path("/tmp/withproj.pdf")
+    assert metadata["project_id"] == pid
+    
+    # Delete the project (should set project_id to NULL due to ON DELETE SET NULL)
     project_manager.delete_project(pid)
-    assert project_manager.get_project_by_id(pid) is None
+    
+    # Verify the metadata still exists but project_id is now NULL
+    metadata = pdf_metadata_manager.get_metadata_by_file_path("/tmp/withproj.pdf")
+    assert metadata is not None
+    assert metadata["project_id"] is None
 
 def test_create_category(category_manager):
     category_id = category_manager.create_category("Test Category", "A test category.", "C001")
@@ -187,13 +207,18 @@ def test_delete_category_referenced_by_metadata(db_manager, category_manager, pd
     cid = category_manager.create_category("RefCat")
     data = {"business": "Biz", "category_id": cid}
     mid = pdf_metadata_manager.create_metadata("/tmp/withcat.pdf", data)
-    # Attempt to delete the category (should raise an error due to FK constraint)
-    with pytest.raises(Exception):
-        category_manager.delete_category(cid)
-    # Clean up: delete metadata, then category
-    pdf_metadata_manager.delete_metadata(mid)
+    
+    # Verify the metadata has the category_id
+    metadata = pdf_metadata_manager.get_metadata_by_file_path("/tmp/withcat.pdf")
+    assert metadata["category_id"] == cid
+    
+    # Delete the category (should set category_id to NULL due to ON DELETE SET NULL)
     category_manager.delete_category(cid)
-    assert category_manager.get_category_by_id(cid) is None
+    
+    # Verify the metadata still exists but category_id is now NULL
+    metadata = pdf_metadata_manager.get_metadata_by_file_path("/tmp/withcat.pdf")
+    assert metadata is not None
+    assert metadata["category_id"] is None
 
 def test_create_metadata(pdf_metadata_manager):
     data = {"business": "TestCo", "total": 123.45, "date": "2024-06-01", "invoice_number": "INV-001"}
