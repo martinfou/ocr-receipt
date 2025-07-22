@@ -1,6 +1,6 @@
 from yoyo import step
 
-__depends__ = {"001_initial_schema.py"}
+__depends__ = {"001_initial_schema"}
 
 steps = [
     step(
