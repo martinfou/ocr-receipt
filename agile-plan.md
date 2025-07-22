@@ -102,27 +102,49 @@
 ### Sprint 2: Core OCR Engine (Week 5-6)
 
 #### Goals
-- Implement OCR functionality
-- Create image processing capabilities
-- Build text extraction system
+- Implement OCR functionality for PDF processing
+- Create PDF page processing capabilities
+- Build text extraction system for PDF files
 
 #### Tasks
-- [ ] **T2.1** - Implement OCR Engine
+- [x] **T2.1** - Implement OCR Engine
   - Create OCREngine class
   - Integrate Tesseract OCR
   - Add confidence scoring
+  - Process all PDF pages (multi-page support)
   - **Story Points**: 8
 
-- [ ] **T2.2** - Create Image Processor
-  - Implement image preprocessing
+- [x] **T2.1a** - Add comprehensive unit tests for OCREngine
+  - 29 unit tests, all passing
+
+- [x] **T2.1b** - Add example script for OCR engine usage
+
+- [x] **T2.1c** - Update .gitignore to exclude PDF files
+
+#### Definition of Done
+- [x] OCR engine functional for PDF processing
+- [x] Tests passing
+
+---
+
+### Sprint 2: Core OCR Engine (Week 5-6)
+
+#### Note
+- Core OCR Engine (T2.1) and its tests are complete and stable.
+- Example script for OCR engine usage is available.
+- .gitignore now excludes PDF files.
+- Next: T2.2 (PDF Page Processor), T2.3 (Text Extractor), T2.4 (Fuzzy Matcher)
+
+- [ ] **T2.2** - Create PDF Page Processor
+  - Implement PDF page preprocessing
   - Add PDF to image conversion
-  - Create image enhancement functions
+  - Create PDF page enhancement functions
   - **Story Points**: 8
 
 - [ ] **T2.3** - Implement Text Extractor
   - Create TextExtractor class
-  - Add PDF text extraction
-  - Implement image text extraction
+  - Add PDF text extraction (all pages)
+  - Implement PDF page text extraction
   - **Story Points**: 5
 
 - [ ] **T2.4** - Create Fuzzy Matcher
@@ -136,13 +158,6 @@
   - Integration tests with sample PDFs
   - Performance tests
   - **Story Points**: 5
-
-#### Definition of Done
-- [ ] OCR engine functional
-- [ ] Image processing working
-- [ ] Text extraction operational
-- [ ] Fuzzy matching implemented
-- [ ] Tests passing
 
 ---
 
@@ -293,10 +308,12 @@
   - Implement real-time updates
   - **Story Points**: 8
 
-- [ ] **T6.3** - Add PDF Preview
+- [ ] **T6.3** - Add PDF Preview with Page Navigation
   - Create PDF preview widget
   - Add image display functionality
   - Implement zoom and navigation
+  - Add page navigation controls (Previous/Next/Go to page)
+  - Implement PDF page caching
   - **Story Points**: 8
 
 - [ ] **T6.4** - Connect to business logic
@@ -315,7 +332,8 @@
 - [ ] Single PDF tab functional
 - [ ] File processing working
 - [ ] Data editing operational
-- [ ] PDF preview working
+- [ ] PDF preview working with page navigation
+- [ ] Page navigation controls functional
 - [ ] Tests passing
 
 ---
