@@ -60,3 +60,31 @@ def test_extract_date_french_accented():
     extractor = DateExtractor()
     text = "Date: 1 août 2024"
     assert extractor.extract_date(text) == "2024-08-01" 
+
+# Edge case: extract_date with empty string
+def test_extract_date_empty():
+    extractor = DateExtractor()
+    assert extractor.extract_date("") is None
+
+# Edge case: extract_date with whitespace
+def test_extract_date_whitespace():
+    extractor = DateExtractor()
+    assert extractor.extract_date("   ") is None
+
+# Edge case: extract_date with invalid format
+def test_extract_date_invalid_format():
+    extractor = DateExtractor()
+    text = "This is not a date."
+    assert extractor.extract_date(text) is None
+
+# Edge case: extract_all_dates with no dates
+def test_extract_all_dates_none():
+    extractor = DateExtractor()
+    text = "No dates here!"
+    assert extractor.extract_all_dates(text) == []
+
+# Edge case: validate_date with None and empty string
+def test_validate_date_none_and_empty():
+    extractor = DateExtractor()
+    assert extractor.validate_date(None) is False
+    assert extractor.validate_date("") is False 
