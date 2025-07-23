@@ -237,7 +237,7 @@
   - Create date validation
   - **Story Points**: 8
 
-- [ ] **T4.3** - Implement Invoice Parser
+- [x] **T4.3** - Implement Invoice Parser
   - Create InvoiceParser class
   - Add company name extraction
   - Implement total amount extraction
@@ -253,7 +253,7 @@
 #### Definition of Done
 - [x] Base parser architecture complete
 - [x] Date extraction working
-- [ ] Invoice parser functional
+- [x] Invoice parser functional
 - [ ] Tests passing
 
 ---
