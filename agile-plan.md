@@ -244,7 +244,7 @@
   - Add invoice number extraction
   - **Story Points**: 13
 
-- [ ] **T4.4** - Add parser tests
+- [x] **T4.4** - Add parser tests
   - Unit tests for parsers
   - Integration tests with sample invoices
   - Validation tests
@@ -254,7 +254,7 @@
 - [x] Base parser architecture complete
 - [x] Date extraction working
 - [x] Invoice parser functional
-- [ ] Tests passing
+- [x] Tests passing
 
 ---
 
@@ -719,6 +719,7 @@
 - **Advanced OCR**: Support for additional OCR engines
 - **Reporting**: Generate reports and analytics
 - **API**: REST API for integration with other systems
+- **NLP Extraction (Nice to Have):** Integrate spaCy for robust company, amount, and date extraction using Named Entity Recognition (NER) and custom rules for invoice numbers.
 
 ### Iteration Planning
 - **Sprint 13-14**: Bug fixes and minor improvements

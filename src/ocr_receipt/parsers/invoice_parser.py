@@ -121,6 +121,44 @@ class InvoiceParser(BaseParser):
             logger.error(f"Invoice parsing failed: {e}")
             raise InvoiceParserError(f"Invoice parsing failed: {e}")
     
+    def _extract_invoice_number(self, text: str) -> Optional[str]:
+        """
+        Extract invoice number from text.
+        
+        Args:
+            text: Text to search for invoice number
+            
+        Returns:
+            Extracted invoice number or None if not found
+        """
+        try:
+            import re
+            
+            # Pattern 1: Labels first
+            label_pattern = r'(?:invoice\s+number|invoice\s+#|inv\s+number|inv\s+#|bill\s+number|bill\s+#)[:\s]*([A-Za-z0-9\-_]+)'
+            match = re.search(label_pattern, text, re.IGNORECASE)
+            if match:
+                return match.group(1).strip()
+
+            # Pattern 2: Keywords after number (e.g., "INV-123 invoice")
+            keyword_after_pattern = r'\b([A-Za-z0-9\-_]{3,20})\s*(?:invoice|inv|bill)\b'
+            match = re.search(keyword_after_pattern, text, re.IGNORECASE)
+            if match:
+                candidate = match.group(1).strip()
+                if not candidate.lower() in ['invoice', 'inv', 'bill']:
+                    return candidate
+
+            # Pattern 3: Standalone INV-xxxx, etc.
+            standalone_pattern = r'\b(INV-[A-Za-z0-9\-_]+|BILL-[A-Za-z0-9\-_]+|INVOICE-[A-Za-z0-9\-_]+)\b'
+            match = re.search(standalone_pattern, text, re.IGNORECASE)
+            if match:
+                return match.group(1).strip()
+
+            return None
+        except Exception as e:
+            logger.debug(f"Invoice number extraction failed: {e}")
+            return None
+
     def _extract_company(self, text: str) -> Optional[str]:
         """
         Extract company name from text.
@@ -132,31 +170,64 @@ class InvoiceParser(BaseParser):
             Extracted company name or None if not found
         """
         try:
+            import re
+            lines = text.split('\n')
+            suffixes = ["Inc.", "LLC", "Ltd.", "Corp.", "Company"]
+            labels = ["Company:", "Business:", "Vendor:", "Bill from:"]
+            # First, handle label-based extraction
+            for line in lines[:10]:
+                for label in labels:
+                    if line.strip().lower().startswith(label.lower()):
+                        value = line.strip()[len(label):].strip()
+                        # If the value ends with a suffix, slice up to the suffix
+                        for suffix in suffixes:
+                            idx = value.find(suffix)
+                            if idx != -1:
+                                company = value[:idx + len(suffix)].strip()
+                                if len(company) > 2:
+                                    return company
+                        # Otherwise, just return the value
+                        if len(value) > 2:
+                            return value
+            # Search for suffix in the first 10 lines and slice up to and including the suffix
+            for line in lines[:10]:
+                for suffix in suffixes:
+                    idx = line.find(suffix)
+                    if idx != -1:
+                        company = line[:idx + len(suffix)].strip()
+                        if len(company) > 2:
+                            return company
             # Try each pattern
             for pattern in self.company_patterns:
                 matches = re.findall(pattern, text, re.IGNORECASE | re.MULTILINE)
                 if matches:
-                    # Clean up the match
                     company = matches[0].strip()
-                    if len(company) > 2:  # Filter out very short matches
+                    if len(company) > 2:
                         return company
-            
-            # Fallback: look for lines that might be company names
-            lines = text.split('\n')
-            for line in lines[:10]:  # Check first 10 lines
+            # Fallback: prefer lines with company suffixes
+            for line in lines[:10]:
                 line = line.strip()
-                if (len(line) > 3 and len(line) < 100 and 
+                if (len(line) > 3 and len(line) < 100 and
                     re.match(r'^[A-Za-z0-9\s&.,\-]+$', line) and
-                    not any(keyword in line.lower() for keyword in 
+                    not any(keyword in line.lower() for keyword in
                            ['invoice', 'date', 'total', 'amount', 'number'])):
-                    return line
-            
+                    if not re.match(r'^(invoice|date|total|amount|number)', line, re.IGNORECASE) and 'invoice' not in line.lower():
+                        if any(suffix in line for suffix in suffixes):
+                            return line
+            # Fallback: first valid line
+            for line in lines[:10]:
+                line = line.strip()
+                if (len(line) > 3 and len(line) < 100 and
+                    re.match(r'^[A-Za-z0-9\s&.,\-]+$', line) and
+                    not any(keyword in line.lower() for keyword in
+                           ['invoice', 'date', 'total', 'amount', 'number'])):
+                    if not re.match(r'^(invoice|date|total|amount|number)', line, re.IGNORECASE) and 'invoice' not in line.lower():
+                        return line
             return None
-            
         except Exception as e:
             logger.debug(f"Company extraction failed: {e}")
             return None
-    
+
     def _extract_total(self, text: str) -> Optional[float]:
         """
         Extract total amount from text.
@@ -168,38 +239,34 @@ class InvoiceParser(BaseParser):
             Extracted total amount as float or None if not found
         """
         try:
+            import re
+            from decimal import Decimal, InvalidOperation
             # Try each pattern
             for pattern in self.total_patterns:
                 matches = re.findall(pattern, text, re.IGNORECASE)
                 if matches:
-                    # Clean up the match and convert to float
                     amount_str = matches[0].replace(',', '')
                     try:
                         amount = float(amount_str)
-                        if amount > 0:  # Valid amount should be positive
+                        if 0 < amount < 100000000:  # Increased limit for larger totals
                             return amount
                     except (ValueError, InvalidOperation):
                         continue
-            
-            # Fallback: look for currency patterns
-            currency_pattern = r'[\$]?([\d,]+\.?\d*)'
-            matches = re.findall(currency_pattern, text)
-            if matches:
-                # Try to find the largest amount (likely the total)
-                amounts = []
-                for match in matches:
+            # Fallback: match numbers with at least one comma (likely totals)
+            amounts = []
+            currency_pattern = r'([$]?((?:[0-9]{1,3}(?:,[0-9]{3})+)(?:\.[0-9]+)?))'
+            for line in text.split('\n'):
+                for match in re.finditer(currency_pattern, line):
+                    value = match.group(2)
                     try:
-                        amount = float(match.replace(',', ''))
-                        if 0 < amount < 1000000:  # Reasonable range
+                        amount = float(value.replace(',', ''))
+                        if 0 < amount < 100000000 and not (1900 <= amount <= 2100):
                             amounts.append(amount)
                     except (ValueError, InvalidOperation):
                         continue
-                
-                if amounts:
-                    return max(amounts)  # Return the largest amount
-            
+            if amounts:
+                return max(amounts)
             return None
-            
         except Exception as e:
             logger.debug(f"Total extraction failed: {e}")
             return None
@@ -220,48 +287,7 @@ class InvoiceParser(BaseParser):
             logger.debug(f"Date extraction failed: {e}")
             return None
     
-    def _extract_invoice_number(self, text: str) -> Optional[str]:
-        """
-        Extract invoice number from text.
-        
-        Args:
-            text: Text to search for invoice number
-            
-        Returns:
-            Extracted invoice number or None if not found
-        """
-        try:
-            # Try each pattern
-            for pattern in self.invoice_number_patterns:
-                matches = re.findall(pattern, text, re.IGNORECASE)
-                if matches:
-                    # Clean up the match
-                    invoice_num = matches[0].strip()
-                    if len(invoice_num) > 0:
-                        return invoice_num
-            
-            # Fallback: look for patterns that might be invoice numbers
-            # Common patterns: INV-123, 12345, INV123, etc.
-            fallback_patterns = [
-                r'(?:INV|BILL|INVOICE)[\-\s]*([A-Za-z0-9\-_]+)',
-                r'([A-Za-z0-9\-_]{3,20})\s*(?:invoice|inv|bill)',
-                r'(?:number|#)[:\s]*([A-Za-z0-9\-_]{3,20})',
-            ]
-            
-            for pattern in fallback_patterns:
-                matches = re.findall(pattern, text, re.IGNORECASE)
-                if matches:
-                    invoice_num = matches[0].strip()
-                    if len(invoice_num) > 0:
-                        return invoice_num
-            
-            return None
-            
-        except Exception as e:
-            logger.debug(f"Invoice number extraction failed: {e}")
-            return None
-    
-    def _calculate_confidence(self, result: Dict[str, Any]) -> float:
+    def _calculate_confidence(self, result: dict) -> float:
         """
         Calculate confidence score for the extraction result.
         
@@ -274,37 +300,31 @@ class InvoiceParser(BaseParser):
         try:
             confidence = 0.0
             total_fields = 4
-            
             # Company name confidence
             if result.get('company'):
                 confidence += 0.25
-                # Bonus for longer company names (more likely to be correct)
                 if len(result['company']) > 5:
                     confidence += 0.05
-            
             # Total amount confidence
             if result.get('total') and result['total'] > 0:
                 confidence += 0.25
-                # Bonus for reasonable amounts
                 if 0.01 <= result['total'] <= 1000000:
                     confidence += 0.05
-            
             # Date confidence
             if result.get('date'):
                 confidence += 0.25
-                # Bonus for valid ISO date
                 if self.date_extractor.validate_date(result['date']):
                     confidence += 0.05
-            
             # Invoice number confidence
             if result.get('invoice_number'):
                 confidence += 0.25
-                # Bonus for longer invoice numbers
                 if len(result['invoice_number']) > 3:
                     confidence += 0.05
-            
+            # Clamp confidence for partial extraction
+            present_fields = sum(1 for k in ['company', 'total', 'date', 'invoice_number'] if result.get(k))
+            if present_fields < 4:
+                return min(confidence, 0.6)
             return min(confidence, 1.0)
-            
         except Exception as e:
             logger.debug(f"Confidence calculation failed: {e}")
             return 0.0
