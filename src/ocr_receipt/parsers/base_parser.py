@@ -20,7 +20,7 @@ class BaseParser:
         self.config = config
         self.ocr_engine = OCREngine(config)
         self.text_extractor = TextExtractor(config)
-        self.fuzzy_matcher = FuzzyMatcher()
+        self.fuzzy_matcher = FuzzyMatcher(self.config)
 
     def parse(self, pdf_path: Union[str, Path]) -> Dict[str, Any]:
         """
@@ -64,8 +64,10 @@ class BaseParser:
         Returns:
             Confidence score as a float between 0 and 1.
         """
-        # Placeholder: Subclasses or specific extractors can override for more detail
-        return 1.0 if all(result.values()) else 0.5
+        required_fields = ["company", "total", "date", "invoice_number"]
+        if all(result.get(field) for field in required_fields):
+            return 1.0
+        return 0.5
 
     def _validate_result(self, result: Dict[str, Any]) -> bool:
         """

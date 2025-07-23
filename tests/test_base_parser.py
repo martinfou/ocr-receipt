@@ -1,5 +1,5 @@
 import pytest
-from src.ocr_receipt.parsers.base_parser import BaseParser
+from ocr_receipt.parsers.base_parser import BaseParser
 
 class DummyParser(BaseParser):
     def parse(self, pdf_path):

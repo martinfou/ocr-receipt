@@ -231,7 +231,7 @@
   - Implement validation framework
   - **Story Points**: 8
 
-- [ ] **T4.2** - Create Date Extractor
+- [x] **T4.2** - Create Date Extractor
   - Implement date pattern recognition
   - Add multiple date format support
   - Create date validation
@@ -252,7 +252,7 @@
 
 #### Definition of Done
 - [x] Base parser architecture complete
-- [ ] Date extraction working
+- [x] Date extraction working
 - [ ] Invoice parser functional
 - [ ] Tests passing
 
