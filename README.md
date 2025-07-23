@@ -118,5 +118,15 @@ src/ocr_receipt/
   poetry run yoyo rollback --database sqlite:///your_database.db
   ```
 
+## Running the Application
+
+To run the GUI application, navigate to the project root and use Poetry to execute the main module:
+
+```bash
+poetry run python -m src.ocr_receipt
+```
+
+This ensures that the application runs within the correct virtual environment with all dependencies available.
+
 ## License
 MIT License 

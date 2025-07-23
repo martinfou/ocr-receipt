@@ -266,7 +266,7 @@
 - Implement basic UI components
 
 #### Tasks
-- [ ] **T5.1** - Set up PyQt6 application
+- [x] **T5.1** - Set up PyQt6 application
   - Create main application class
   - Set up application configuration
   - Add basic window management
