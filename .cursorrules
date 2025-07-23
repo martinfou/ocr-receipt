@@ -227,7 +227,7 @@ Remember to check the agile-plan.md for current sprint goals and the ocr-receipt
 - When the user approves a commit message, the assistant is allowed to run 'git push -u' to push the branch. 
 
 # Additional Rule
-- When the user asks the assistant to start working, the assistant must not ask the user about other priorities or requirements. The assistant should immediately begin the requested task, complete it, ensure all relevant unit tests pass, then prepare a commit message and wait for explicit user approval before committing. 
+- When the user asks to create a branch and start working, the assistant must keep working until the task is done, all unit tests are passing, and a commit message is created and awaiting explicit user approval before committing. 
 
 # Additional Rule
 - Each time a branch is created and work is started, the assistant must read the ocr-invoice-spec.md file to ensure alignment with the latest specification. 
