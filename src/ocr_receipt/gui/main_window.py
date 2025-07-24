@@ -1,6 +1,7 @@
 from PyQt6.QtWidgets import QMainWindow, QApplication, QTabWidget, QWidget, QLabel, QVBoxLayout
 from PyQt6.QtCore import Qt
 from ocr_receipt.config import ConfigManager
+from .single_pdf_tab import SinglePDFTab
 
 class OCRMainWindow(QMainWindow):
     """Main application window for OCR Invoice Parser."""
@@ -19,8 +20,8 @@ class OCRMainWindow(QMainWindow):
         self.tab_widget = QTabWidget()
         self.setCentralWidget(self.tab_widget)
 
-        # Add main tabs (placeholders)
-        self._add_tab("Single PDF", "Single PDF Processing Tab")
+        # Add main tabs
+        self.tab_widget.addTab(SinglePDFTab(), "Single PDF")
         self._add_tab("Business Keywords", "Business Keywords Tab")
         self._add_tab("Projects", "Projects Tab")
         self._add_tab("Categories", "Categories Tab")

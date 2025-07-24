@@ -4,6 +4,7 @@ from PyQt6.QtWidgets import (
 from .widgets.data_panel import DataPanel
 from .widgets.pdf_preview import PDFPreview
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QIcon
 
 class SinglePDFTab(QWidget):
     """
