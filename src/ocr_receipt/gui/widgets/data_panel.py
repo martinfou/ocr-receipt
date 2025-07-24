@@ -46,11 +46,11 @@ class DataPanel(QWidget):
 
         # Invoice number field
         self.invoice_number_edit = QLineEdit()
-        self.invoice_conf = QLabel()
+        self.invoice_number_conf = QLabel()
         self.invoice_confirm_btn = QPushButton("✓")
         invoice_row = QHBoxLayout()
         invoice_row.addWidget(self.invoice_number_edit)
-        invoice_row.addWidget(self.invoice_conf)
+        invoice_row.addWidget(self.invoice_number_conf)
         invoice_row.addWidget(self.invoice_confirm_btn)
         form_layout.addRow("Invoice Number:", invoice_row)
 
@@ -71,8 +71,9 @@ class DataPanel(QWidget):
         """
         edit = getattr(self, f"{field}_edit", None)
         conf_label = getattr(self, f"{field}_conf", None)
+        print(f"[DEBUG] set_field: field={field}, edit={edit}, conf_label={conf_label}, value={value}")
         if edit and conf_label:
-            edit.setText(value)
+            edit.setText(str(value))
             if confidence >= low_conf_threshold:
                 conf_label.setText("[✓]")
                 edit.setStyleSheet("")
