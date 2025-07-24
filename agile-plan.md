@@ -318,7 +318,7 @@
   - Implement real-time updates
   - **Story Points**: 8
 
-- [ ] **T6.3** - Add PDF Preview with Page Navigation
+- [x] **T6.3** - Add PDF Preview with Page Navigation
   - Create PDF preview widget
   - Add image display functionality
   - Implement zoom and navigation
