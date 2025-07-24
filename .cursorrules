@@ -207,7 +207,7 @@ Remember to check the agile-plan.md for current sprint goals and the ocr-receipt
 ## Commit Message Policy
 - All commit messages must be reviewed 100% of the time, with no exceptions.
 - An explicit, approved commit message is required before any commit is made.
-- The assistant must always ask the user to review and explicitly approve the commit message before committing.
+- The assistant must always ask the user to review and explicitly approve the commit message before committing, even if the user says 'commit'.
 
 ## Commit Message Title Rule
 - All commit messages must start with the title of a task, e.g., '**T3.1** - Implement Business Mapping Manager'.

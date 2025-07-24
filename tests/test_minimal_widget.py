@@ -1,24 +1,12 @@
 import pytest
 from PyQt6.QtWidgets import QApplication
-from ocr_receipt.gui.widgets.minimal_widget import MinimalWidget
 from ocr_receipt.gui.main_window import OCRMainWindow
-
-@pytest.fixture
-def widget(qtbot):
-    w = MinimalWidget("Initial Text")
-    qtbot.addWidget(w)
-    return w
+from ocr_receipt.gui.widgets.data_panel import DataPanel
+from ocr_receipt.gui.widgets.editable_combo_box import EditableComboBox
 
 @pytest.fixture
 def app(qtbot):
     return QApplication.instance() or QApplication([])
-
-def test_initial_text(widget):
-    assert widget.get_text() == "Initial Text"
-
-def test_set_text(widget):
-    widget.set_text("Updated Text")
-    assert widget.get_text() == "Updated Text"
 
 def test_main_window_launch(qtbot, app):
     window = OCRMainWindow()
@@ -26,7 +14,6 @@ def test_main_window_launch(qtbot, app):
     window.show()
     assert window.windowTitle() == "OCR Invoice Parser"
     assert window.isVisible()
-
 
 def test_main_window_tabs(qtbot, app):
     window = OCRMainWindow()
@@ -41,4 +28,28 @@ def test_main_window_tabs(qtbot, app):
     ]
     actual_tabs = [window.tab_widget.tabText(i) for i in range(window.tab_widget.count())]
     for tab in expected_tabs:
-        assert tab in actual_tabs 
+        assert tab in actual_tabs
+
+def test_data_panel_fields(qtbot, app):
+    panel = DataPanel()
+    qtbot.addWidget(panel)
+    data = {
+        "company": "TestCo",
+        "total": 123.45,
+        "date": "2024-07-01",
+        "invoice_number": "INV-001"
+    }
+    panel.load_data(data)
+    assert panel.company_edit.text() == "TestCo"
+    assert panel.total_edit.text() == "123.45"
+    assert panel.date_edit.text() == "2024-07-01"
+    assert panel.invoice_number_edit.text() == "INV-001"
+
+def test_editable_combo_box(qtbot, app):
+    combo = EditableComboBox()
+    qtbot.addWidget(combo)
+    combo.set_items(["A", "B", "C"])
+    combo.setCurrentIndex(1)
+    assert combo.get_value() == "B"
+    combo.setEditText("Custom")
+    assert combo.get_value() == "Custom" 
