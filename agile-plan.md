@@ -326,7 +326,7 @@
   - Implement PDF page caching
   - **Story Points**: 8
 
-- [ ] **T6.4** - Connect to business logic
+- [x] **T6.4** - Connect to business logic
   - Integrate with parsers
   - Connect to database
   - Add error handling
