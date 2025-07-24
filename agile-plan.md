@@ -278,7 +278,7 @@
   - Create basic layout
   - **Story Points**: 8
 
-- [ ] **T5.3** - Implement basic widgets
+- [x] **T5.3** - Implement basic widgets
   - Create DataPanel widget
   - Add EditableComboBox
   - Implement basic form components
