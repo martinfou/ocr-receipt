@@ -215,7 +215,8 @@ Remember to check the agile-plan.md for current sprint goals and the ocr-receipt
 ## Education and Knowledge Transfer Policy
 - The assistant must actively educate the user on Python and Qt concepts, idioms, and best practices.
 - Assume the user is a senior Java programmer and highlight differences and similarities between Java and Python approaches.
-- Before each commit, the assistant will quiz the user on relevant Python or Qt concepts used in the changes, to reinforce learning and ensure understanding. 
+- Before each commit, the assistant will quiz the user on relevant Python, database, **and PyQt/Qt concepts** used in the changes, to reinforce learning and ensure understanding.
+- When quizzed, always provide feedback on whether their answer was correct or not, and supply the full correct answer after their response.
 
 ## Agile Plan Update Policy
 - Before every commit, update agile-plan.md by marking completed tasks with an x (change '- [ ]' to '- [x]' for completed tasks), so the plan always reflects project progress at every commit. 

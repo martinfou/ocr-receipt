@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QMainWindow, QApplication
+from PyQt6.QtWidgets import QMainWindow, QApplication, QTabWidget, QWidget, QLabel, QVBoxLayout
 from PyQt6.QtCore import Qt
 from ocr_receipt.config import ConfigManager
 
@@ -14,7 +14,24 @@ class OCRMainWindow(QMainWindow):
         window_size = self.config_manager.get('gui.window_size', [1200, 800])
         self.resize(*window_size)
         self.setMinimumSize(800, 600)
-        # Placeholder: Add more UI setup here as needed
+
+        # Create tab widget
+        self.tab_widget = QTabWidget()
+        self.setCentralWidget(self.tab_widget)
+
+        # Add main tabs (placeholders)
+        self._add_tab("Single PDF", "Single PDF Processing Tab")
+        self._add_tab("Business Keywords", "Business Keywords Tab")
+        self._add_tab("Projects", "Projects Tab")
+        self._add_tab("Categories", "Categories Tab")
+        self._add_tab("File Naming", "File Naming Tab")
+        self._add_tab("Settings", "Settings Tab")
+
+    def _add_tab(self, name: str, label: str):
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        layout.addWidget(QLabel(label))
+        self.tab_widget.addTab(widget, name)
 
 if __name__ == "__main__":
     import sys

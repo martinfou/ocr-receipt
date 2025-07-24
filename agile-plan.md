@@ -272,7 +272,7 @@
   - Add basic window management
   - **Story Points**: 5
 
-- [ ] **T5.2** - Create Main Window
+- [x] **T5.2** - Create Main Window
   - Implement OCRMainWindow class
   - Add tab widget structure
   - Create basic layout
