@@ -306,7 +306,7 @@
 - Build data display and editing
 
 #### Tasks
-- [ ] **T6.1** - Create Single PDF Tab
+- [x] **T6.1** - Create Single PDF Tab
   - Implement SinglePDFTab class
   - Add file selection interface
   - Create processing controls
