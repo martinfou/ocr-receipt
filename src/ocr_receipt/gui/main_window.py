@@ -2,12 +2,22 @@ from PyQt6.QtWidgets import QMainWindow, QApplication, QTabWidget, QWidget, QLab
 from PyQt6.QtCore import Qt
 from ocr_receipt.config import ConfigManager
 from .single_pdf_tab import SinglePDFTab
+from ocr_receipt.business.database_manager import DatabaseManager
+from ocr_receipt.business.business_mapping_manager import BusinessMappingManager
+from ocr_receipt.business.project_manager import ProjectManager
+from ocr_receipt.business.category_manager import CategoryManager
 
 class OCRMainWindow(QMainWindow):
     """Main application window for OCR Invoice Parser."""
     def __init__(self):
         super().__init__()
         self.config_manager = ConfigManager()
+        # Instantiate database and business logic managers
+        db_path = self.config_manager.get('database.path', 'ocr_receipts.db')
+        self.db_manager = DatabaseManager(db_path)
+        self.business_mapping_manager = BusinessMappingManager(self.db_manager)
+        self.project_manager = ProjectManager(self.db_manager)
+        self.category_manager = CategoryManager(self.db_manager)
         self._setup_ui()
 
     def _setup_ui(self):
@@ -20,8 +30,15 @@ class OCRMainWindow(QMainWindow):
         self.tab_widget = QTabWidget()
         self.setCentralWidget(self.tab_widget)
 
-        # Add main tabs
-        self.tab_widget.addTab(SinglePDFTab(), "Single PDF")
+        # Add main tabs, passing business logic managers to SinglePDFTab
+        self.tab_widget.addTab(
+            SinglePDFTab(
+                business_mapping_manager=self.business_mapping_manager,
+                project_manager=self.project_manager,
+                category_manager=self.category_manager
+            ),
+            "Single PDF"
+        )
         self._add_tab("Business Keywords", "Business Keywords Tab")
         self._add_tab("Projects", "Projects Tab")
         self._add_tab("Categories", "Categories Tab")

@@ -17,7 +17,6 @@ class DataPanel(QWidget):
         # Company field with confidence and actions
         self.company_edit = QLineEdit()
         self.company_conf = QLabel()
-        self.company_edit.setReadOnly(True)
         self.company_confirm_btn = QPushButton("✓")
         company_row = QHBoxLayout()
         company_row.addWidget(self.company_edit)
@@ -28,7 +27,6 @@ class DataPanel(QWidget):
         # Total field
         self.total_edit = QLineEdit()
         self.total_conf = QLabel()
-        self.total_edit.setReadOnly(True)
         self.total_confirm_btn = QPushButton("✓")
         total_row = QHBoxLayout()
         total_row.addWidget(self.total_edit)
@@ -39,7 +37,6 @@ class DataPanel(QWidget):
         # Date field
         self.date_edit = QLineEdit()
         self.date_conf = QLabel()
-        self.date_edit.setReadOnly(True)
         self.date_confirm_btn = QPushButton("✓")
         date_row = QHBoxLayout()
         date_row.addWidget(self.date_edit)
@@ -50,7 +47,6 @@ class DataPanel(QWidget):
         # Invoice number field
         self.invoice_number_edit = QLineEdit()
         self.invoice_conf = QLabel()
-        self.invoice_number_edit.setReadOnly(True)
         self.invoice_confirm_btn = QPushButton("✓")
         invoice_row = QHBoxLayout()
         invoice_row.addWidget(self.invoice_number_edit)

@@ -5,14 +5,20 @@ from .widgets.data_panel import DataPanel
 from .widgets.pdf_preview import PDFPreview
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QIcon
+from ocr_receipt.config import ConfigManager
+from ocr_receipt.parsers.invoice_parser import InvoiceParser, InvoiceParserError
+from pathlib import Path
 
 class SinglePDFTab(QWidget):
     """
     Advanced Single PDF tab with PDF preview, project settings, extracted data, file naming preview, and action buttons.
     Now uses a QSplitter with a QGridLayout for true vertical alignment of navigation and project settings.
     """
-    def __init__(self, parent=None):
+    def __init__(self, business_mapping_manager, project_manager, category_manager, parent=None):
         super().__init__(parent)
+        self.business_mapping_manager = business_mapping_manager
+        self.project_manager = project_manager
+        self.category_manager = category_manager
         self._setup_ui()
         self._setup_connections()
 
@@ -105,6 +111,9 @@ class SinglePDFTab(QWidget):
         right_grid.addWidget(extracted_info_group, 2, 0)
         # --- End DataPanel replacement ---
 
+        # Populate project and category dropdowns from business logic
+        self._populate_projects_and_categories()
+
         # File naming preview
         filename_group = QGroupBox("File Naming Preview")
         filename_layout = QVBoxLayout(filename_group)
@@ -126,13 +135,42 @@ class SinglePDFTab(QWidget):
         # TODO: Connect other signals for interactive features
 
     def _on_browse_file(self) -> None:
-        from PyQt6.QtWidgets import QFileDialog
+        from PyQt6.QtWidgets import QFileDialog, QMessageBox
         file_path, _ = QFileDialog.getOpenFileName(self, "Select PDF File", "", "PDF Files (*.pdf)")
         if file_path:
             self.file_path_edit.setText(file_path)
             self.pdf_preview.load_pdf(file_path)
-            # TODO: Trigger OCR and data extraction
+            # Trigger OCR and data extraction
+            try:
+                config = ConfigManager()._config  # Get full config dict
+                parser = InvoiceParser(config)
+                result = parser.parse(Path(file_path))
+                # Load extracted data into DataPanel
+                self.data_panel.load_data({
+                    "company": result.get("company", ""),
+                    "total": result.get("total", ""),
+                    "date": result.get("date", ""),
+                    "invoice_number": result.get("invoice_number", ""),
+                    "company_confidence": result.get("confidence", 1.0),
+                    "total_confidence": result.get("confidence", 1.0),
+                    "date_confidence": result.get("confidence", 1.0),
+                    "invoice_number_confidence": result.get("confidence", 1.0)
+                })
+            except InvoiceParserError as e:
+                QMessageBox.critical(self, "Parsing Error", f"Failed to parse invoice: {e}")
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Unexpected error: {e}")
 
     def _on_confidence_changed(self, value: int) -> None:
         self.confidence_label.setText(f"{value}%")
         # TODO: Update confidence threshold logic 
+
+    def _populate_projects_and_categories(self):
+        # Get project and category names from managers
+        projects = self.project_manager.list_projects()
+        project_names = [p['name'] for p in projects]
+        self.data_panel.project_combo.set_items(project_names)
+
+        categories = self.category_manager.list_categories()
+        category_names = [c['name'] for c in categories]
+        self.data_panel.category_combo.set_items(category_names) 
