@@ -284,17 +284,17 @@
   - Implement basic form components
   - **Story Points**: 8
 
-- [ ] **T5.4** - Add GUI tests
+- [x] **T5.4** - Add GUI tests
   - Set up pytest-qt
   - Create basic GUI tests
   - Add widget tests
   - **Story Points**: 5
 
 #### Definition of Done
-- [ ] Main window functional
-- [ ] Basic widgets working
-- [ ] Tab structure implemented
-- [ ] GUI tests passing
+- [x] Main window functional
+- [x] Basic widgets working
+- [x] Tab structure implemented
+- [x] GUI tests passing
 
 ---
 

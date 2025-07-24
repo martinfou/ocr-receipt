@@ -45,6 +45,16 @@ def test_data_panel_fields(qtbot, app):
     assert panel.date_edit.text() == "2024-07-01"
     assert panel.invoice_number_edit.text() == "INV-001"
 
+    # Simulate user editing fields
+    panel.company_edit.setText("NewCo")
+    panel.total_edit.setText("999.99")
+    panel.date_edit.setText("2024-12-31")
+    panel.invoice_number_edit.setText("INV-999")
+    assert panel.company_edit.text() == "NewCo"
+    assert panel.total_edit.text() == "999.99"
+    assert panel.date_edit.text() == "2024-12-31"
+    assert panel.invoice_number_edit.text() == "INV-999"
+
 def test_editable_combo_box(qtbot, app):
     combo = EditableComboBox()
     qtbot.addWidget(combo)
@@ -52,4 +62,10 @@ def test_editable_combo_box(qtbot, app):
     combo.setCurrentIndex(1)
     assert combo.get_value() == "B"
     combo.setEditText("Custom")
-    assert combo.get_value() == "Custom" 
+    assert combo.get_value() == "Custom"
+    # Simulate user clearing the field
+    combo.setEditText("")
+    assert combo.get_value() == ""
+    # Simulate error: set_items with empty list
+    combo.set_items([])
+    assert combo.count() == 0 
