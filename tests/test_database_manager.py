@@ -3,6 +3,9 @@ from ocr_receipt.business.database_manager import DatabaseManager
 from ocr_receipt.business.project_manager import ProjectManager
 from ocr_receipt.business.category_manager import CategoryManager
 from ocr_receipt.business.pdf_metadata_manager import PDFMetadataManager
+import sqlite3
+import tempfile
+import os
 
 @pytest.fixture
 def db_manager():
@@ -70,6 +73,50 @@ def pdf_metadata_manager(db_manager):
         )
     """)
     return PDFMetadataManager(db_manager)
+
+def setup_test_db():
+    # Create a temporary SQLite database and required tables
+    db_fd, db_path = tempfile.mkstemp()
+    db = DatabaseManager(db_path)
+    db.connect()
+    db.execute_query('''CREATE TABLE businesses (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL UNIQUE
+    )''')
+    db.execute_query('''CREATE TABLE business_keywords (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        business_id INTEGER NOT NULL,
+        keyword TEXT NOT NULL,
+        is_case_sensitive BOOLEAN DEFAULT 0,
+        last_used TIMESTAMP,
+        usage_count INTEGER DEFAULT 0,
+        FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE
+    )''')
+    return db, db_fd, db_path
+
+def teardown_test_db(db, db_fd, db_path):
+    db.close()
+    os.close(db_fd)
+    os.remove(db_path)
+
+def test_get_all_keywords():
+    db, db_fd, db_path = setup_test_db()
+    try:
+        # Insert a business and a keyword
+        db.execute_query("INSERT INTO businesses (name) VALUES (?)", ("TestCo",))
+        business_id = db.execute_query("SELECT id FROM businesses WHERE name=?", ("TestCo",)).fetchone()[0]
+        db.execute_query("INSERT INTO business_keywords (business_id, keyword, is_case_sensitive, usage_count) VALUES (?, ?, ?, ?)", (business_id, "testkey", 1, 5))
+        # Test get_all_keywords
+        keywords = db.get_all_keywords()
+        assert isinstance(keywords, list)
+        assert len(keywords) == 1
+        k = keywords[0]
+        assert k["business_name"] == "TestCo"
+        assert k["keyword"] == "testkey"
+        assert k["is_case_sensitive"] == 1
+        assert k["usage_count"] == 5
+    finally:
+        teardown_test_db(db, db_fd, db_path)
 
 def test_create_project(project_manager):
     project_id = project_manager.create_project("Test Project", "A test project.")

@@ -1,5 +1,5 @@
 import sqlite3
-from typing import Any, Optional, Sequence, Tuple, Union
+from typing import Any, Optional, Sequence, Tuple, Union, Dict, List
 import logging
 
 class DatabaseError(Exception):
@@ -83,22 +83,63 @@ class DatabaseManager:
             logging.error(f"Database batch query failed: {e}\nQuery: {query}")
             raise DatabaseError(f"Batch query failed: {e}")
 
-    def add_keyword(self, business_id: int, keyword: str, match_type: str = "exact", is_case_sensitive: int = 0) -> bool:
+    def add_keyword(self, business_id: int, keyword: str, is_case_sensitive: int = 0) -> bool:
         """
         Add a keyword for a business.
         :param business_id: ID of the business
         :param keyword: Keyword string
-        :param match_type: 'exact' or 'variant'
         :param is_case_sensitive: 0 (case-insensitive) or 1 (case-sensitive)
         :return: True if added, False if error
         """
         try:
             query = (
-                "INSERT INTO business_keywords (business_id, keyword, match_type, is_case_sensitive) "
-                "VALUES (?, ?, ?, ?)"
+                "INSERT INTO business_keywords (business_id, keyword, is_case_sensitive) "
+                "VALUES (?, ?, ?)"
             )
-            self.execute_query(query, (business_id, keyword, match_type, is_case_sensitive))
+            self.execute_query(query, (business_id, keyword, is_case_sensitive))
             return True
         except Exception as e:
             logging.error(f"Failed to add keyword: {e}")
-            return False 
+            return False
+
+    def add_business(self, business_name: str, metadata: Optional[Dict] = None) -> int:
+        """
+        Add a new business to the database.
+        :param business_name: Name of the business
+        :param metadata: Optional metadata dictionary
+        :return: Business ID if added successfully
+        """
+        try:
+            query = "INSERT INTO businesses (name) VALUES (?)"
+            cursor = self.execute_query(query, (business_name,))
+            return cursor.lastrowid
+        except Exception as e:
+            logging.error(f"Failed to add business: {e}")
+            raise DatabaseError(f"Failed to add business: {e}")
+
+    def get_all_businesses(self) -> List[Dict[str, Any]]:
+        """
+        Get all businesses from the database.
+        :return: List of business dictionaries
+        """
+        try:
+            query = "SELECT id, name FROM businesses"
+            cursor = self.execute_query(query)
+            columns = [desc[0] for desc in cursor.description]
+            return [dict(zip(columns, row)) for row in cursor.fetchall()]
+        except Exception as e:
+            logging.error(f"Failed to get businesses: {e}")
+            return []
+
+    def get_all_keywords(self):
+        """
+        Return all keywords with their associated business names and properties.
+        """
+        query = '''
+            SELECT bk.keyword, bk.is_case_sensitive, bk.last_used, bk.usage_count, b.name as business_name
+            FROM business_keywords bk
+            JOIN businesses b ON bk.business_id = b.id
+        '''
+        cursor = self.execute_query(query)
+        columns = [desc[0] for desc in cursor.description]
+        return [dict(zip(columns, row)) for row in cursor.fetchall()] 

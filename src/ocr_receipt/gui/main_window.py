@@ -2,6 +2,7 @@ from PyQt6.QtWidgets import QMainWindow, QApplication, QTabWidget, QWidget, QLab
 from PyQt6.QtCore import Qt
 from ocr_receipt.config import ConfigManager
 from .single_pdf_tab import SinglePDFTab
+from .business_keywords_tab import BusinessKeywordsTab
 from ocr_receipt.business.database_manager import DatabaseManager
 from ocr_receipt.business.business_mapping_manager import BusinessMappingManager
 from ocr_receipt.business.project_manager import ProjectManager
@@ -39,7 +40,10 @@ class OCRMainWindow(QMainWindow):
             ),
             "Single PDF"
         )
-        self._add_tab("Business Keywords", "Business Keywords Tab")
+        self.tab_widget.addTab(
+            BusinessKeywordsTab(self.business_mapping_manager),
+            "Business Keywords"
+        )
         self._add_tab("Projects", "Projects Tab")
         self._add_tab("Categories", "Categories Tab")
         self._add_tab("File Naming", "File Naming Tab")
