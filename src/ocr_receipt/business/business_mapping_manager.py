@@ -18,6 +18,13 @@ class BusinessMappingManager:
         self.db_manager = db_manager
         self.config = config or {}
         self.fuzzy_matcher = FuzzyMatcher(self.config)
+        
+        # Initialize database if needed
+        try:
+            self.db_manager.initialize_database()
+        except Exception as e:
+            # Log error but don't fail initialization
+            print(f"Warning: Database initialization failed: {e}")
 
     def add_business(self, business_name: str, metadata: Optional[Dict[str, Any]] = None) -> bool:
         """Add a new business to the database. Returns True if added, False if already exists or error."""

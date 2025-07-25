@@ -46,6 +46,78 @@ class DatabaseManager:
             self.connection.close()
             self.connection = None
 
+    def initialize_database(self) -> None:
+        """
+        Initialize the database with required tables.
+        This method creates the basic schema if it doesn't exist.
+        """
+        try:
+            # Create businesses table
+            self.execute_query('''
+                CREATE TABLE IF NOT EXISTS businesses (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL UNIQUE
+                )
+            ''')
+            
+            # Create business_keywords table
+            self.execute_query('''
+                CREATE TABLE IF NOT EXISTS business_keywords (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    business_id INTEGER NOT NULL,
+                    keyword TEXT NOT NULL,
+                    is_case_sensitive BOOLEAN DEFAULT 0,
+                    last_used TIMESTAMP,
+                    usage_count INTEGER DEFAULT 0,
+                    FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE
+                )
+            ''')
+            
+            # Create projects table
+            self.execute_query('''
+                CREATE TABLE IF NOT EXISTS projects (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL UNIQUE,
+                    description TEXT
+                )
+            ''')
+            
+            # Create categories table
+            self.execute_query('''
+                CREATE TABLE IF NOT EXISTS categories (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL UNIQUE,
+                    description TEXT,
+                    category_code TEXT
+                )
+            ''')
+            
+            # Create invoice_metadata table
+            self.execute_query('''
+                CREATE TABLE IF NOT EXISTS invoice_metadata (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    file_path TEXT UNIQUE NOT NULL,
+                    business TEXT,
+                    total REAL,
+                    date TEXT,
+                    invoice_number TEXT,
+                    check_number TEXT,
+                    raw_text TEXT,
+                    parser_type TEXT,
+                    confidence REAL,
+                    is_valid BOOLEAN DEFAULT FALSE,
+                    project_id INTEGER,
+                    category_id INTEGER,
+                    extracted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (project_id) REFERENCES projects (id),
+                    FOREIGN KEY (category_id) REFERENCES categories (id)
+                )
+            ''')
+            
+        except Exception as e:
+            logging.error(f"Failed to initialize database: {e}")
+            raise DatabaseError(f"Database initialization failed: {e}")
+
     def execute_query(self, query: str, params: Optional[Union[Sequence[Any], dict]] = None) -> sqlite3.Cursor:
         """
         Execute a parameterized query and return the cursor.
