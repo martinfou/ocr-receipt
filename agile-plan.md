@@ -362,7 +362,7 @@
   - Create toolbar and controls
   - **Story Points**: 8
 
-- [ ] **T7.2** - Implement Keywords Table
+- [x] **T7.2** - Implement Keywords Table
   - Create KeywordsTable widget
   - Add sorting and filtering
   - Implement selection handling
