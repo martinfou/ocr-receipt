@@ -37,7 +37,7 @@ def test_add_keyword(manager, mock_db_manager):
     # Should add keyword for existing business
     assert manager.add_keyword("Acme Corp", "Acme")
     # Should not add keyword for non-existent business
-    mock_db_manager.get_all_businesses.return_value = []
+    mock_db_manager.get_business_by_name.return_value = None
     assert not manager.add_keyword("NonExistent", "Foo")
 
 def test_get_keywords(manager):
@@ -112,6 +112,70 @@ def test_add_business_adds_exact_keyword(manager, mock_db_manager):
     def get_all_businesses_side_effect():
         return business_list
     mock_db_manager.get_all_businesses.side_effect = get_all_businesses_side_effect
-    mock_db_manager.add_business.side_effect = lambda name, meta: business_list.append({"id": 1, "name": name})        
+    mock_db_manager.add_business.side_effect = lambda name, meta: business_list.append({"id": 1, "name": name})
+    
+    # Mock get_business_by_name to return the business after it's added
+    def get_business_by_name_side_effect(name):
+        if name == "TestBiz":
+            return {"id": 1, "name": "TestBiz"}
+        return None
+    mock_db_manager.get_business_by_name.side_effect = get_business_by_name_side_effect
+    
     manager.add_business("TestBiz")
-    mock_db_manager.add_keyword.assert_called_with(1, "TestBiz", 0) 
+    mock_db_manager.add_keyword.assert_called_with(1, "TestBiz", 0, "exact") 
+
+def test_update_business_and_keyword(manager, mock_db_manager):
+    """Test updating both business name and keyword."""
+    # Mock the database manager responses
+    mock_db_manager.get_business_by_name.side_effect = lambda name: {"id": 1, "name": name} if name == "OldBusiness" else None
+    mock_db_manager.update_business_name.return_value = True
+    mock_db_manager.update_keyword.return_value = True
+    
+    # Test updating both business name and keyword
+    success = manager.update_business_and_keyword(
+        "OldBusiness", "NewBusiness", "old_keyword", "new_keyword", 0, "exact"
+    )
+    
+    assert success is True
+    mock_db_manager.update_business_name.assert_called_with(1, "NewBusiness")
+    mock_db_manager.update_keyword.assert_called_with(1, "old_keyword", "new_keyword", 0, "exact")
+
+def test_update_business_and_keyword_business_not_found(manager, mock_db_manager):
+    """Test updating business and keyword when business doesn't exist."""
+    mock_db_manager.get_business_by_name.return_value = None
+    
+    success = manager.update_business_and_keyword(
+        "NonExistent", "NewBusiness", "old_keyword", "new_keyword", 0, "exact"
+    )
+    
+    assert success is False
+
+def test_update_business_and_keyword_new_name_exists(manager, mock_db_manager):
+    """Test updating business and keyword when new business name already exists."""
+    def get_business_side_effect(name):
+        if name == "OldBusiness":
+            return {"id": 1, "name": name}
+        elif name == "ExistingBusiness":
+            return {"id": 2, "name": name}
+        return None
+    
+    mock_db_manager.get_business_by_name.side_effect = get_business_side_effect
+    
+    success = manager.update_business_and_keyword(
+        "OldBusiness", "ExistingBusiness", "old_keyword", "new_keyword", 0, "exact"
+    )
+    
+    assert success is False
+
+def test_update_business_and_keyword_same_name(manager, mock_db_manager):
+    """Test updating business and keyword when business name doesn't change."""
+    mock_db_manager.get_business_by_name.return_value = {"id": 1, "name": "SameBusiness"}
+    mock_db_manager.update_keyword.return_value = True
+    
+    success = manager.update_business_and_keyword(
+        "SameBusiness", "SameBusiness", "old_keyword", "new_keyword", 0, "exact"
+    )
+    
+    assert success is True
+    mock_db_manager.update_business_name.assert_not_called()
+    mock_db_manager.update_keyword.assert_called_with(1, "old_keyword", "new_keyword", 0, "exact") 

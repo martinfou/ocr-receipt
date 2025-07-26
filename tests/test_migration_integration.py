@@ -94,7 +94,7 @@ class TestMigrationIntegration:
         # Rollback the last migration
         rolled_back = migration_manager.rollback_migrations(count=1, force=True)
         assert len(rolled_back) == 1
-        assert "002_add_case_sensitive_to_business_and_keywords" in rolled_back
+        assert "003_add_match_type_to_business_keywords" in rolled_back
 
         # Check that database is no longer initialized
         # assert not migration_manager.is_database_initialized()
@@ -119,7 +119,7 @@ class TestMigrationIntegration:
         applied_ids = [m['id'] for m in applied]
         pending_ids = [m['id'] for m in pending]
         assert "001_initial_schema" in applied_ids
-        assert "002_add_case_sensitive_to_business_and_keywords" in pending_ids
+        assert "003_add_match_type_to_business_keywords" in pending_ids
 
     def test_mark_migration_applied(self, migration_manager):
         """Test marking a migration as applied without running it."""

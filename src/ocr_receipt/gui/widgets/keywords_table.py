@@ -150,8 +150,8 @@ class KeywordsTable(QTableWidget):
             keyword_item = QTableWidgetItem(str(keyword.get("keyword", "")))
             self.setItem(row, 1, keyword_item)
             
-            # Match type (determine from case sensitivity and usage)
-            match_type = "exact" if keyword.get("is_case_sensitive", 0) == 1 else "fuzzy"
+            # Match type (use the actual match_type field from database)
+            match_type = keyword.get("match_type", "exact")
             match_item = QTableWidgetItem(match_type)
             self.setItem(row, 2, match_item)
             

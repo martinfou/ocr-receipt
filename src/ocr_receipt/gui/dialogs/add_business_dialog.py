@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox
+from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox, QComboBox, QFormLayout
 from PyQt6.QtCore import Qt
 from typing import Optional
 from ...utils.translation_helper import tr
@@ -13,6 +13,7 @@ class AddBusinessDialog(QDialog):
         self.setModal(True)
         self.setMinimumWidth(350)
         self.business_name: Optional[str] = None
+        self.match_type: str = "exact"
         self._setup_ui()
 
     def _setup_ui(self) -> None:
@@ -29,12 +30,24 @@ class AddBusinessDialog(QDialog):
         desc_label.setStyleSheet("color: #666; margin-bottom: 10px;")
         layout.addWidget(desc_label)
         
+        # Form layout for fields
+        form_layout = QFormLayout()
+        
         # Business name input
-        layout.addWidget(QLabel(tr("add_business_dialog.business_name_label")))
         self.name_edit = QLineEdit()
         self.name_edit.setPlaceholderText(tr("add_business_dialog.placeholder"))
         self.name_edit.setMaxLength(100)  # Reasonable limit
-        layout.addWidget(self.name_edit)
+        form_layout.addRow(tr("add_business_dialog.business_name_label"), self.name_edit)
+        
+        # Match type dropdown
+        self.match_type_combo = QComboBox()
+        self.match_type_combo.addItem("Exact Match", "exact")
+        self.match_type_combo.addItem("Fuzzy Match", "fuzzy")
+        self.match_type_combo.addItem("Partial Match", "partial")
+        self.match_type_combo.setToolTip("Select how this business name should be matched")
+        form_layout.addRow("Match Type:", self.match_type_combo)
+        
+        layout.addLayout(form_layout)
 
         # Buttons
         button_layout = QHBoxLayout()
@@ -61,6 +74,7 @@ class AddBusinessDialog(QDialog):
     def _on_accept(self) -> None:
         """Handle accept button click with validation."""
         name = self.name_edit.text().strip()
+        self.match_type = self.match_type_combo.currentData()
         
         # Validation
         if not name:
@@ -91,10 +105,14 @@ class AddBusinessDialog(QDialog):
             self.name_edit.setFocus()
             return
         
-        # Store the business name
+        # Store the business name and match type
         self.business_name = name
         self.accept()
 
     def get_business_name(self) -> Optional[str]:
         """Get the entered business name."""
-        return self.business_name 
+        return self.business_name
+    
+    def get_match_type(self) -> str:
+        """Get the selected match type."""
+        return self.match_type 

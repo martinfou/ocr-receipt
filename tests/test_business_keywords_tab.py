@@ -19,6 +19,7 @@ def temp_db():
         business_id INTEGER NOT NULL,
         keyword TEXT NOT NULL,
         is_case_sensitive BOOLEAN DEFAULT 0,
+        match_type TEXT NOT NULL DEFAULT 'exact',
         last_used TIMESTAMP,
         usage_count INTEGER DEFAULT 0,
         FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE

@@ -94,8 +94,9 @@ class BusinessKeywordsTab(QWidget):
         dialog = AddBusinessDialog(self)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             business_name = dialog.get_business_name()
+            match_type = dialog.get_match_type()
             if business_name:
-                success = self.business_mapping_manager.add_business(business_name)
+                success = self.business_mapping_manager.add_business(business_name, match_type=match_type)
                 if success:
                     self._load_keywords()
                     self._load_statistics()  # Refresh statistics after adding business
@@ -110,18 +111,38 @@ class BusinessKeywordsTab(QWidget):
             if dialog.exec() == QDialog.DialogCode.Accepted:
                 edited_data = dialog.get_edited_data()
                 if edited_data and dialog.has_changes():
-                    success = self.business_mapping_manager.update_keyword(
-                        edited_data['business_name'],
-                        edited_data['original_keyword'],
-                        edited_data['keyword'],
-                        edited_data['is_case_sensitive']
-                    )
+                    # Check if business name changed
+                    business_name_changed = edited_data['business_name'] != edited_data['original_business_name']
+                    
+                    if business_name_changed:
+                        # Use the new method that handles both business name and keyword updates
+                        success = self.business_mapping_manager.update_business_and_keyword(
+                            edited_data['original_business_name'],
+                            edited_data['business_name'],
+                            edited_data['original_keyword'],
+                            edited_data['keyword'],
+                            edited_data['is_case_sensitive'],
+                            edited_data['match_type']
+                        )
+                    else:
+                        # Use the existing method for keyword-only updates
+                        success = self.business_mapping_manager.update_keyword(
+                            edited_data['business_name'],
+                            edited_data['original_keyword'],
+                            edited_data['keyword'],
+                            edited_data['is_case_sensitive'],
+                            edited_data['match_type']
+                        )
+                    
                     if success:
                         self._load_keywords()
                         self._load_statistics()  # Refresh statistics after editing
                         QMessageBox.information(self, tr("common.success"), tr("business_keywords_tab.keyword_updated"))
                     else:
-                        QMessageBox.warning(self, tr("common.error"), tr("business_keywords_tab.update_failed"))
+                        if business_name_changed:
+                            QMessageBox.warning(self, tr("common.error"), "Failed to update business name and keyword. The new business name may already exist.")
+                        else:
+                            QMessageBox.warning(self, tr("common.error"), tr("business_keywords_tab.update_failed"))
         else:
             QMessageBox.information(self, tr("common.information"), tr("business_keywords_tab.no_selection"))
 

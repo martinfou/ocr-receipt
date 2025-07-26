@@ -88,6 +88,7 @@ def setup_test_db():
         business_id INTEGER NOT NULL,
         keyword TEXT NOT NULL,
         is_case_sensitive BOOLEAN DEFAULT 0,
+        match_type TEXT NOT NULL DEFAULT 'exact',
         last_used TIMESTAMP,
         usage_count INTEGER DEFAULT 0,
         FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE
@@ -105,7 +106,7 @@ def test_get_all_keywords():
         # Insert a business and a keyword
         db.execute_query("INSERT INTO businesses (name) VALUES (?)", ("TestCo",))
         business_id = db.execute_query("SELECT id FROM businesses WHERE name=?", ("TestCo",)).fetchone()[0]
-        db.execute_query("INSERT INTO business_keywords (business_id, keyword, is_case_sensitive, usage_count) VALUES (?, ?, ?, ?)", (business_id, "testkey", 1, 5))
+        db.execute_query("INSERT INTO business_keywords (business_id, keyword, is_case_sensitive, match_type, usage_count) VALUES (?, ?, ?, ?, ?)", (business_id, "testkey", 1, "exact", 5))
         # Test get_all_keywords
         keywords = db.get_all_keywords()
         assert isinstance(keywords, list)
@@ -329,3 +330,61 @@ def test_delete_metadata(pdf_metadata_manager):
 def test_delete_metadata_not_exist(pdf_metadata_manager):
     with pytest.raises(ValueError):
         pdf_metadata_manager.delete_metadata(999) 
+
+def test_get_business_by_name(db_manager):
+    """Test getting a business by name."""
+    # Add a business
+    business_id = db_manager.add_business("TestCo")
+    
+    # Get business by name
+    business = db_manager.get_business_by_name("TestCo")
+    assert business is not None
+    assert business["id"] == business_id
+    assert business["name"] == "TestCo"
+    
+    # Test non-existent business
+    business = db_manager.get_business_by_name("NonExistent")
+    assert business is None
+
+def test_get_business_by_name_case_sensitive(db_manager):
+    """Test that get_business_by_name is case sensitive."""
+    # Add a business with specific case
+    business_id = db_manager.add_business("TestCo")
+    
+    # Get business with exact case
+    business = db_manager.get_business_by_name("TestCo")
+    assert business is not None
+    assert business["id"] == business_id
+    
+    # Get business with different case
+    business = db_manager.get_business_by_name("testco")
+    assert business is None 
+
+def test_update_business_name(db_manager):
+    """Test updating a business name."""
+    # Add a business
+    business_id = db_manager.add_business("OldName")
+    
+    # Update the business name
+    success = db_manager.update_business_name(business_id, "NewName")
+    assert success is True
+    
+    # Verify the name was updated
+    business = db_manager.get_business_by_name("NewName")
+    assert business is not None
+    assert business["id"] == business_id
+    assert business["name"] == "NewName"
+    
+    # Verify old name no longer exists
+    old_business = db_manager.get_business_by_name("OldName")
+    assert old_business is None
+
+def test_update_business_name_not_found(db_manager):
+    """Test updating a business name that doesn't exist."""
+    success = db_manager.update_business_name(999, "NewName")
+    assert success is True  # SQLite UPDATE doesn't fail if no rows affected
+
+def test_update_business_name_invalid_id(db_manager):
+    """Test updating a business name with invalid ID."""
+    success = db_manager.update_business_name(-1, "NewName")
+    assert success is True  # SQLite UPDATE doesn't fail if no rows affected 
