@@ -387,7 +387,7 @@
   - Update GUI components to use translations
   - **Story Points**: 8
 
-- [ ] **T7.5** - Add tab tests
+- [x] **T7.5** - Add tab tests
   - GUI tests for keywords tab
   - Dialog tests
   - Integration tests
@@ -398,7 +398,7 @@
 - [ ] CRUD operations working
 - [ ] Search and filtering operational
 - [x] Statistics display working
-- [ ] Tests passing
+- [x] Tests passing
 
 ---
 
