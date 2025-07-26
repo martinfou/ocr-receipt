@@ -3,6 +3,8 @@ from PyQt6.QtCore import Qt
 from ocr_receipt.config import ConfigManager
 from .single_pdf_tab import SinglePDFTab
 from .business_keywords_tab import BusinessKeywordsTab
+from .projects_tab import ProjectsTab
+from .settings_tab import SettingsTab
 from ocr_receipt.business.database_manager import DatabaseManager
 from ocr_receipt.business.business_mapping_manager import BusinessMappingManager
 from ocr_receipt.business.project_manager import ProjectManager
@@ -43,28 +45,51 @@ class OCRMainWindow(QMainWindow):
         self.setCentralWidget(self.tab_widget)
 
         # Add main tabs, passing business logic managers to SinglePDFTab
-        self.tab_widget.addTab(
-            SinglePDFTab(
-                business_mapping_manager=self.business_mapping_manager,
-                project_manager=self.project_manager,
-                category_manager=self.category_manager
-            ),
-            "Single PDF"
+        self.single_pdf_tab = SinglePDFTab(
+            business_mapping_manager=self.business_mapping_manager,
+            project_manager=self.project_manager,
+            category_manager=self.category_manager
         )
-        self.tab_widget.addTab(
-            BusinessKeywordsTab(self.business_mapping_manager),
-            "Business Keywords"
-        )
-        self._add_tab("Projects", "Projects Tab")
+        self.tab_widget.addTab(self.single_pdf_tab, tr("single_pdf_tab.title"))
+        
+        self.business_keywords_tab = BusinessKeywordsTab(self.business_mapping_manager)
+        self.tab_widget.addTab(self.business_keywords_tab, tr("business_keywords_tab.title"))
+        
+        self.projects_tab = ProjectsTab(self.project_manager)
+        self.tab_widget.addTab(self.projects_tab, tr("projects_tab.title"))
+        
         self._add_tab("Categories", "Categories Tab")
         self._add_tab("File Naming", "File Naming Tab")
-        self._add_tab("Settings", "Settings Tab")
+        
+        # Create settings tab with language change signal connection
+        self.settings_tab = SettingsTab(self.config_manager)
+        self.settings_tab.language_changed.connect(self._on_language_changed)
+        self.tab_widget.addTab(self.settings_tab, tr("settings_tab.title"))
 
     def _add_tab(self, name: str, label: str):
         widget = QWidget()
         layout = QVBoxLayout(widget)
         layout.addWidget(QLabel(label))
         self.tab_widget.addTab(widget, name)
+
+    def _on_language_changed(self, new_language: str) -> None:
+        """Handle language change from settings tab."""
+        # Update window title
+        self.setWindowTitle(tr("main_window.title"))
+        
+        # Update tab names
+        self.tab_widget.setTabText(0, tr("single_pdf_tab.title"))
+        self.tab_widget.setTabText(1, tr("business_keywords_tab.title"))
+        self.tab_widget.setTabText(2, tr("projects_tab.title"))
+        self.tab_widget.setTabText(5, tr("settings_tab.title"))
+        
+        # Update ProjectsTab button texts
+        if hasattr(self, 'projects_tab'):
+            self.projects_tab.update_language()
+        
+        # Update BusinessKeywordsTab button texts
+        if hasattr(self, 'business_keywords_tab'):
+            self.business_keywords_tab.update_language()
 
 if __name__ == "__main__":
     import sys

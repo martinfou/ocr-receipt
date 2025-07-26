@@ -232,4 +232,17 @@ class BusinessKeywordsTab(QWidget):
             f"{tr('business_keywords_tab.fuzzy_matches', fuzzy=fuzzy_matches)} | "
             f"{tr('business_keywords_tab.total_usage', usage=total_usage)}"
         )
-        self.stats_label.setText(stats_text) 
+        self.stats_label.setText(stats_text)
+
+    def update_language(self) -> None:
+        """Update all text elements when language changes."""
+        # Update button texts
+        self.add_button.setText(tr("business_keywords_tab.add_business"))
+        self.edit_button.setText(tr("business_keywords_tab.edit_keyword"))
+        self.delete_button.setText(tr("business_keywords_tab.delete_keyword"))
+        self.refresh_button.setText(tr("business_keywords_tab.refresh"))
+        self.show_stats_button.setText(tr("business_keywords_tab.show_statistics"))
+        
+        # Update statistics if they exist
+        if hasattr(self, 'stats_label') and self.stats_label.text():
+            self._load_keywords()  # This will update the statistics 
