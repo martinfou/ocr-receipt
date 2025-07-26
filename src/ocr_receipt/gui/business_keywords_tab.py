@@ -5,6 +5,7 @@ from .dialogs.add_business_dialog import AddBusinessDialog
 from .dialogs.edit_keyword_dialog import EditKeywordDialog
 from .widgets.keywords_table import KeywordsTable
 from .widgets.statistics_panel import StatisticsPanel
+from ..utils.translation_helper import tr
 
 class BusinessKeywordsTab(QWidget):
     """
@@ -23,11 +24,11 @@ class BusinessKeywordsTab(QWidget):
 
         # Toolbar
         toolbar = QHBoxLayout()
-        self.add_button = QPushButton("Add Business")
-        self.edit_button = QPushButton("Edit Keyword")
-        self.delete_button = QPushButton("Delete Keyword")
-        self.refresh_button = QPushButton("Refresh")
-        self.show_stats_button = QPushButton("Show Statistics")
+        self.add_button = QPushButton(tr("business_keywords_tab.add_business"))
+        self.edit_button = QPushButton(tr("business_keywords_tab.edit_keyword"))
+        self.delete_button = QPushButton(tr("business_keywords_tab.delete_keyword"))
+        self.refresh_button = QPushButton(tr("business_keywords_tab.refresh"))
+        self.show_stats_button = QPushButton(tr("business_keywords_tab.show_statistics"))
         self.show_stats_button.setCheckable(True)
         self.show_stats_button.setChecked(True)
         
@@ -99,7 +100,8 @@ class BusinessKeywordsTab(QWidget):
                     self._load_keywords()
                     self._load_statistics()  # Refresh statistics after adding business
                 else:
-                    QMessageBox.warning(self, "Add Business Failed", f"Business '{business_name}' already exists or could not be added.")
+                    QMessageBox.warning(self, tr("business_keywords_tab.add_business_failed"), 
+                                       tr("business_keywords_tab.business_exists", business_name=business_name))
 
     def _on_edit_keyword(self) -> None:
         selected_keyword = self.keywords_table.get_selected_keyword()
@@ -117,11 +119,11 @@ class BusinessKeywordsTab(QWidget):
                     if success:
                         self._load_keywords()
                         self._load_statistics()  # Refresh statistics after editing
-                        QMessageBox.information(self, "Success", "Keyword updated successfully.")
+                        QMessageBox.information(self, tr("common.success"), tr("business_keywords_tab.keyword_updated"))
                     else:
-                        QMessageBox.warning(self, "Update Failed", "Failed to update keyword. Please try again.")
+                        QMessageBox.warning(self, tr("common.error"), tr("business_keywords_tab.update_failed"))
         else:
-            QMessageBox.information(self, "No Selection", "Please select a keyword to edit.")
+            QMessageBox.information(self, tr("common.information"), tr("business_keywords_tab.no_selection"))
 
     def _on_delete_keyword(self) -> None:
         selected_keywords = self.keywords_table.get_selected_keywords()
@@ -129,8 +131,8 @@ class BusinessKeywordsTab(QWidget):
             count = len(selected_keywords)
             reply = QMessageBox.question(
                 self, 
-                "Delete Keywords", 
-                f"Are you sure you want to delete {count} selected keyword(s)?\n\nThis action cannot be undone.",
+                tr("business_keywords_tab.delete_keywords"), 
+                tr("business_keywords_tab.delete_confirm", count=count),
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
             )
             if reply == QMessageBox.StandardButton.Yes:
@@ -151,15 +153,17 @@ class BusinessKeywordsTab(QWidget):
                 self._load_statistics()  # Refresh statistics after deleting
                 
                 if failed_count == 0:
-                    QMessageBox.information(self, "Success", f"Successfully deleted {success_count} keyword(s).")
+                    QMessageBox.information(self, tr("common.success"), 
+                                          tr("business_keywords_tab.delete_success", success_count=success_count))
                 elif success_count == 0:
-                    QMessageBox.warning(self, "Delete Failed", f"Failed to delete {failed_count} keyword(s).")
+                    QMessageBox.warning(self, tr("common.error"), 
+                                      tr("business_keywords_tab.delete_failed", failed_count=failed_count))
                 else:
-                    QMessageBox.information(self, "Partial Success", 
-                                          f"Successfully deleted {success_count} keyword(s).\n"
-                                          f"Failed to delete {failed_count} keyword(s).")
+                    QMessageBox.information(self, tr("common.information"), 
+                                          tr("business_keywords_tab.delete_partial", 
+                                             success_count=success_count, failed_count=failed_count))
         else:
-            QMessageBox.information(self, "No Selection", "Please select keywords to delete.")
+            QMessageBox.information(self, tr("common.information"), tr("business_keywords_tab.no_selection_delete"))
 
     def _on_keyword_selected(self, keyword_data: dict) -> None:
         """Handle keyword selection."""
@@ -201,10 +205,10 @@ class BusinessKeywordsTab(QWidget):
         total_usage = sum(k.get('usage_count', 0) for k in keywords)
         
         stats_text = (
-            f"Total Keywords: {total_keywords} | "
-            f"Unique Businesses: {unique_businesses} | "
-            f"Exact Matches: {exact_matches} | "
-            f"Fuzzy Matches: {fuzzy_matches} | "
-            f"Total Usage: {total_usage}"
+            f"{tr('business_keywords_tab.total_keywords', total=total_keywords)} | "
+            f"{tr('business_keywords_tab.unique_businesses', unique=unique_businesses)} | "
+            f"{tr('business_keywords_tab.exact_matches', exact=exact_matches)} | "
+            f"{tr('business_keywords_tab.fuzzy_matches', fuzzy=fuzzy_matches)} | "
+            f"{tr('business_keywords_tab.total_usage', usage=total_usage)}"
         )
         self.stats_label.setText(stats_text) 

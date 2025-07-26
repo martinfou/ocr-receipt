@@ -7,12 +7,17 @@ from ocr_receipt.business.database_manager import DatabaseManager
 from ocr_receipt.business.business_mapping_manager import BusinessMappingManager
 from ocr_receipt.business.project_manager import ProjectManager
 from ocr_receipt.business.category_manager import CategoryManager
+from ocr_receipt.utils.translation_helper import set_language, tr
 
 class OCRMainWindow(QMainWindow):
     """Main application window for OCR Invoice Parser."""
     def __init__(self):
         super().__init__()
         self.config_manager = ConfigManager()
+        
+        # Initialize translation system
+        self._init_translations()
+        
         # Instantiate database and business logic managers
         db_path = self.config_manager.get('database.path', 'ocr_receipts.db')
         self.db_manager = DatabaseManager(db_path)
@@ -21,8 +26,14 @@ class OCRMainWindow(QMainWindow):
         self.category_manager = CategoryManager(self.db_manager)
         self._setup_ui()
 
+    def _init_translations(self):
+        """Initialize the translation system."""
+        # Get language from config
+        language = self.config_manager.get('app.ui_language', 'en')
+        set_language(language)
+
     def _setup_ui(self):
-        self.setWindowTitle("OCR Invoice Parser")
+        self.setWindowTitle(tr("main_window.title"))
         window_size = self.config_manager.get('gui.window_size', [1200, 800])
         self.resize(*window_size)
         self.setMinimumSize(800, 600)
