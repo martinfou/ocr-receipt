@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QLineEdit, QPushButton, QLabel, QComboBox, QCheckBox, QSlider, QFormLayout, QFrame, QSplitter, QGridLayout
+    QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QLineEdit, QPushButton, QLabel, QComboBox, QCheckBox, QSlider, QFormLayout, QFrame, QSplitter, QGridLayout, QProgressBar
 )
 from .widgets.data_panel import DataPanel
 from .widgets.pdf_preview import PDFPreview
@@ -48,6 +48,40 @@ class SinglePDFTab(QWidget):
         top_bar_widget.setMinimumHeight(32)
         top_bar_widget.setMaximumHeight(32)
         layout.addWidget(top_bar_widget)
+
+        # Progress indicator area
+        progress_widget = QWidget()
+        progress_layout = QHBoxLayout(progress_widget)
+        progress_layout.setContentsMargins(8, 4, 8, 4)
+        progress_layout.setSpacing(8)
+
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setVisible(False)
+        self.progress_bar.setMaximumHeight(24)
+        self.progress_bar.setMinimumHeight(20)
+        self.progress_bar.setStyleSheet("""
+            QProgressBar {
+                border: 2px solid #0078D4;
+                border-radius: 4px;
+                text-align: center;
+                background-color: #f0f0f0;
+                font-weight: bold;
+                color: #333;
+            }
+            QProgressBar::chunk {
+                background-color: #0078D4;
+                border-radius: 2px;
+            }
+        """)
+
+        self.status_label = QLabel("Ready to process PDF")
+        self.status_label.setStyleSheet("color: #333; font-size: 12px; font-weight: bold; padding-left: 8px;")
+
+        progress_layout.addWidget(self.progress_bar)
+        progress_layout.addWidget(self.status_label)
+        progress_layout.addStretch()
+
+        layout.addWidget(progress_widget)
 
         # Main content area: QSplitter for resizable columns
         splitter = QSplitter(Qt.Orientation.Horizontal)
@@ -131,35 +165,76 @@ class SinglePDFTab(QWidget):
 
     def _setup_connections(self) -> None:
         self.browse_button.clicked.connect(self._on_browse_file)
+        self.reprocess_button.clicked.connect(self._on_reprocess_file)
         self.confidence_slider.valueChanged.connect(self._on_confidence_changed)
         # TODO: Connect other signals for interactive features
+
+    def _on_reprocess_file(self) -> None:
+        """Handle file reprocessing with visual feedback."""
+        file_path = self.file_path_edit.text()
+        if file_path:
+            self._process_pdf_file(file_path)
+        else:
+            # If no file is selected, show a test of the progress bar
+            self.test_progress_bar_visibility()
 
     def _on_browse_file(self) -> None:
         from PyQt6.QtWidgets import QFileDialog, QMessageBox
         file_path, _ = QFileDialog.getOpenFileName(self, "Select PDF File", "", "PDF Files (*.pdf)")
         if file_path:
             self.file_path_edit.setText(file_path)
+            self._process_pdf_file(file_path)
+
+    def _process_pdf_file(self, file_path: str) -> None:
+        """Process PDF file with visual feedback."""
+        from PyQt6.QtWidgets import QMessageBox
+        from PyQt6.QtCore import QTimer
+        
+        try:
+            # Stage 1: Loading
+            self.show_processing_stage("loading")
+            
+            # Load PDF preview (this might take some time)
             self.pdf_preview.load_pdf(file_path)
-            # Trigger OCR and data extraction
-            try:
-                config = ConfigManager()._config  # Get full config dict
-                parser = InvoiceParser(config)
-                result = parser.parse(Path(file_path))
-                # Load extracted data into DataPanel
-                self.data_panel.load_data({
-                    "company": result.get("company", ""),
-                    "total": result.get("total", ""),
-                    "date": result.get("date", ""),
-                    "invoice_number": result.get("invoice_number", ""),
-                    "company_confidence": result.get("confidence", 1.0),
-                    "total_confidence": result.get("confidence", 1.0),
-                    "date_confidence": result.get("confidence", 1.0),
-                    "invoice_number_confidence": result.get("confidence", 1.0)
-                })
-            except InvoiceParserError as e:
-                QMessageBox.critical(self, "Parsing Error", f"Failed to parse invoice: {e}")
-            except Exception as e:
-                QMessageBox.critical(self, "Error", f"Unexpected error: {e}")
+            
+            # Stage 2: Converting to images
+            self.show_processing_stage("converting")
+            
+            # Stage 3: OCR Processing
+            self.show_processing_stage("ocr")
+            
+            # Stage 4: Data Extraction
+            self.show_processing_stage("extracting")
+            
+            # Parse the PDF (this is the main processing)
+            config = ConfigManager()._config  # Get full config dict
+            parser = InvoiceParser(config)
+            result = parser.parse(Path(file_path))
+            
+            # Stage 5: Business Matching
+            self.show_processing_stage("matching")
+            
+            # Load extracted data into DataPanel
+            self.data_panel.load_data({
+                "company": result.get("company", ""),
+                "total": result.get("total", ""),
+                "date": result.get("date", ""),
+                "invoice_number": result.get("invoice_number", ""),
+                "company_confidence": result.get("confidence", 1.0),
+                "total_confidence": result.get("confidence", 1.0),
+                "date_confidence": result.get("confidence", 1.0),
+                "invoice_number_confidence": result.get("confidence", 1.0)
+            })
+            
+            # Stage 6: Complete
+            self.show_processing_stage("complete")
+            
+        except InvoiceParserError as e:
+            self.show_processing_stage("error")
+            QMessageBox.critical(self, "Parsing Error", f"Failed to parse invoice: {e}")
+        except Exception as e:
+            self.show_processing_stage("error")
+            QMessageBox.critical(self, "Error", f"Unexpected error: {e}")
 
     def _on_confidence_changed(self, value: int) -> None:
         self.confidence_label.setText(f"{value}%")
@@ -173,4 +248,96 @@ class SinglePDFTab(QWidget):
 
         categories = self.category_manager.list_categories()
         category_names = [c['name'] for c in categories]
-        self.data_panel.category_combo.set_items(category_names) 
+        self.data_panel.category_combo.set_items(category_names)
+
+    def show_processing_stage(self, stage: str):
+        """Show appropriate status for each processing stage."""
+        stages = {
+            "loading": ("📄 Loading PDF file...", "Loading"),
+            "converting": ("🖼️ Converting pages to images...", "Converting"), 
+            "ocr": ("🔍 Running OCR analysis...", "OCR Processing"),
+            "extracting": ("📊 Extracting invoice data...", "Data Extraction"),
+            "matching": ("🏢 Matching business names...", "Business Matching"),
+            "complete": ("✅ Processing complete!", "Complete"),
+            "error": ("❌ Error occurred", "Error")
+        }
+        
+        message, short_status = stages.get(stage, ("Processing...", "Processing"))
+        self.status_label.setText(message)
+        
+        # Define which stages are processing stages (show progress, disable controls)
+        processing_stages = ["loading", "converting", "ocr", "extracting", "matching"]
+        
+        if stage in processing_stages or stage not in stages:
+            # Show progress bar for known processing stages or unknown stages
+            self.progress_bar.setVisible(True)
+            self.progress_bar.setRange(0, 0)  # Indeterminate progress
+            self.progress_bar.setValue(0)  # Ensure it starts at 0
+            self._disable_controls_during_processing()
+            
+            # Force the progress bar to update immediately
+            self.progress_bar.repaint()
+        else:
+            # Hide progress bar for completion stages
+            self.progress_bar.setVisible(False)
+            self._enable_controls_after_processing()
+
+    def _disable_controls_during_processing(self):
+        """Disable controls during processing."""
+        self.browse_button.setEnabled(False)
+        self.reprocess_button.setEnabled(False)
+        self.save_button.setEnabled(False)
+        self.rename_button.setEnabled(False)
+        self.export_button.setEnabled(False)
+
+    def _enable_controls_after_processing(self):
+        """Re-enable controls after processing."""
+        self.browse_button.setEnabled(True)
+        self.reprocess_button.setEnabled(True)
+        self.save_button.setEnabled(True)
+        self.rename_button.setEnabled(True)
+        self.export_button.setEnabled(True)
+
+    def process_pdf_with_feedback(self, file_path: str):
+        """Process PDF with visual feedback at each stage."""
+        try:
+            # Stage 1: Loading
+            self.show_processing_stage("loading")
+            
+            # Stage 2: Converting to images
+            self.show_processing_stage("converting")
+            # PDF to image conversion happens in PDFPreview
+            
+            # Stage 3: OCR Processing
+            self.show_processing_stage("ocr")
+            # OCR processing happens in InvoiceParser
+            
+            # Stage 4: Data Extraction
+            self.show_processing_stage("extracting")
+            # Data extraction happens in InvoiceParser
+            
+            # Stage 5: Business Matching
+            self.show_processing_stage("matching")
+            # Business matching happens in InvoiceParser
+            
+            # Complete
+            self.show_processing_stage("complete")
+            
+        except Exception as e:
+            self.show_processing_stage("error")
+            # Error handling is done in the calling method
+
+    def test_progress_bar_visibility(self):
+        """Test method to verify progress bar visibility - for debugging."""
+        print("Testing progress bar visibility...")
+        print(f"Progress bar visible: {self.progress_bar.isVisible()}")
+        print(f"Progress bar geometry: {self.progress_bar.geometry()}")
+        print(f"Progress bar parent: {self.progress_bar.parent()}")
+        
+        # Show the progress bar
+        self.show_processing_stage("loading")
+        print(f"After show_processing_stage - Progress bar visible: {self.progress_bar.isVisible()}")
+        
+        # Wait a bit and then hide
+        from PyQt6.QtCore import QTimer
+        QTimer.singleShot(3000, lambda: self.show_processing_stage("complete")) 
