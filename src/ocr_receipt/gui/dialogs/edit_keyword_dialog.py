@@ -1,28 +1,31 @@
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, 
-    QPushButton, QCheckBox, QFormLayout, QMessageBox
+    QPushButton, QCheckBox, QFormLayout, QMessageBox, QComboBox
 )
 from PyQt6.QtCore import Qt
 from typing import Optional, Dict, Any
 
 class EditKeywordDialog(QDialog):
     """
-    Dialog for editing an existing keyword.
+    Dialog for editing an existing keyword and business name.
     """
     def __init__(self, keyword_data: Dict[str, Any], parent: Optional[QDialog] = None) -> None:
         super().__init__(parent)
         self.keyword_data = keyword_data
         self.original_keyword = keyword_data.get('keyword', '')
         self.original_case_sensitive = keyword_data.get('is_case_sensitive', 0)
-        self.business_name = keyword_data.get('business_name', '')
+        self.original_match_type = keyword_data.get('match_type', 'exact')  # Default to 'exact' if missing
+        self.original_business_name = keyword_data.get('business_name', '')
         
-        self.setWindowTitle(f"Edit Keyword - {self.business_name}")
+        self.setWindowTitle(f"Edit Keyword - {self.original_business_name}")
         self.setModal(True)
         self.setMinimumWidth(400)
         
         # Result data
         self.edited_keyword: Optional[str] = None
         self.edited_case_sensitive: Optional[int] = None
+        self.edited_match_type: Optional[str] = None
+        self.edited_business_name: Optional[str] = None
         
         self._setup_ui()
         self._load_current_data()
@@ -34,10 +37,11 @@ class EditKeywordDialog(QDialog):
         # Form layout for fields
         form_layout = QFormLayout()
         
-        # Business name (read-only)
-        self.business_label = QLabel(self.business_name)
-        self.business_label.setStyleSheet("font-weight: bold; color: #666;")
-        form_layout.addRow("Business:", self.business_label)
+        # Business name (editable)
+        self.business_edit = QLineEdit()
+        self.business_edit.setPlaceholderText("Enter business name...")
+        self.business_edit.setMaxLength(100)  # Reasonable limit
+        form_layout.addRow("Business:", self.business_edit)
         
         # Keyword field
         self.keyword_edit = QLineEdit()
@@ -48,6 +52,14 @@ class EditKeywordDialog(QDialog):
         self.case_sensitive_checkbox = QCheckBox("Case sensitive")
         self.case_sensitive_checkbox.setToolTip("If checked, this keyword will only match with exact case")
         form_layout.addRow("", self.case_sensitive_checkbox)
+        
+        # Match type dropdown
+        self.match_type_combo = QComboBox()
+        self.match_type_combo.addItem("Exact Match", "exact")
+        self.match_type_combo.addItem("Fuzzy Match", "fuzzy")
+        self.match_type_combo.addItem("Partial Match", "partial")
+        self.match_type_combo.setToolTip("Select how this keyword should be matched")
+        form_layout.addRow("Match Type:", self.match_type_combo)
         
         # Usage information (read-only)
         usage_count = self.keyword_data.get('usage_count', 0)
@@ -89,45 +101,91 @@ class EditKeywordDialog(QDialog):
         
         # Connect validation
         self.keyword_edit.textChanged.connect(self._on_text_changed)
+        self.business_edit.textChanged.connect(self._on_text_changed)
 
     def _load_current_data(self) -> None:
         """Load current keyword data into the form."""
+        self.business_edit.setText(self.original_business_name)
         self.keyword_edit.setText(self.original_keyword)
         self.case_sensitive_checkbox.setChecked(self.original_case_sensitive == 1)
+        
+        # Set match type
+        index = self.match_type_combo.findData(self.original_match_type)
+        if index >= 0:
+            self.match_type_combo.setCurrentIndex(index)
+        
         self._on_text_changed()
 
     def _on_text_changed(self) -> None:
         """Handle text changes for validation."""
         keyword = self.keyword_edit.text().strip()
-        self.save_button.setEnabled(bool(keyword))
+        business = self.business_edit.text().strip()
+        self.save_button.setEnabled(bool(keyword) and bool(business))
 
     def _on_reset(self) -> None:
         """Reset form to original values."""
+        self.business_edit.setText(self.original_business_name)
         self.keyword_edit.setText(self.original_keyword)
         self.case_sensitive_checkbox.setChecked(self.original_case_sensitive == 1)
+        
+        # Reset match type
+        index = self.match_type_combo.findData(self.original_match_type)
+        if index >= 0:
+            self.match_type_combo.setCurrentIndex(index)
+        
         self._on_text_changed()
 
     def _on_save(self) -> None:
         """Handle save button click with validation."""
+        business_name = self.business_edit.text().strip()
         keyword = self.keyword_edit.text().strip()
         case_sensitive = 1 if self.case_sensitive_checkbox.isChecked() else 0
+        match_type = self.match_type_combo.currentData()
         
         # Validation
+        if not business_name:
+            QMessageBox.warning(self, "Validation Error", "Please enter a business name.")
+            self.business_edit.setFocus()
+            return
+        
         if not keyword:
             QMessageBox.warning(self, "Validation Error", "Please enter a keyword.")
             self.keyword_edit.setFocus()
             return
         
+        # Check for minimum length
+        if len(business_name) < 2:
+            QMessageBox.warning(self, "Validation Error", "Business name must be at least 2 characters long.")
+            self.business_edit.setFocus()
+            return
+        
+        if len(keyword) < 1:
+            QMessageBox.warning(self, "Validation Error", "Keyword must be at least 1 character long.")
+            self.keyword_edit.setFocus()
+            return
+        
+        # Check for maximum length
+        if len(business_name) > 100:
+            QMessageBox.warning(self, "Validation Error", "Business name must be 100 characters or less.")
+            self.business_edit.setFocus()
+            return
+        
         # Check if anything has changed
-        if (keyword == self.original_keyword and 
-            case_sensitive == self.original_case_sensitive):
+        business_changed = business_name != self.original_business_name
+        keyword_changed = keyword != self.original_keyword
+        case_changed = case_sensitive != self.original_case_sensitive
+        match_changed = match_type != self.original_match_type
+        
+        if not (business_changed or keyword_changed or case_changed or match_changed):
             QMessageBox.information(self, "No Changes", "No changes were made to the keyword.")
             self.reject()
             return
         
         # Store the edited values
+        self.edited_business_name = business_name
         self.edited_keyword = keyword
         self.edited_case_sensitive = case_sensitive
+        self.edited_match_type = match_type
         
         # Accept the dialog
         self.accept()
@@ -141,16 +199,21 @@ class EditKeywordDialog(QDialog):
             return None
             
         return {
+            'business_name': self.edited_business_name,
             'keyword': self.edited_keyword,
             'is_case_sensitive': self.edited_case_sensitive,
-            'business_name': self.business_name,
+            'match_type': self.edited_match_type,
+            'original_business_name': self.original_business_name,
             'original_keyword': self.original_keyword,
-            'original_case_sensitive': self.original_case_sensitive
+            'original_case_sensitive': self.original_case_sensitive,
+            'original_match_type': self.original_match_type
         }
 
     def has_changes(self) -> bool:
         """Check if any changes were made."""
         if self.edited_keyword is None:
             return False
-        return (self.edited_keyword != self.original_keyword or 
-                self.edited_case_sensitive != self.original_case_sensitive) 
+        return (self.edited_business_name != self.original_business_name or
+                self.edited_keyword != self.original_keyword or 
+                self.edited_case_sensitive != self.original_case_sensitive or
+                self.edited_match_type != self.original_match_type) 

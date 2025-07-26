@@ -393,6 +393,41 @@
   - Integration tests
   - **Story Points**: 5
 
+- [x] **T7.6** - Optimize business keyword performance
+  - Add get_business_by_name method to DatabaseManager
+  - Update BusinessMappingManager to use efficient business lookup
+  - Improve performance of add_keyword, update_keyword, and delete_keyword methods
+  - Add comprehensive tests for new functionality
+  - **Story Points**: 3
+
+- [x] **T7.7** - Implement match_type field for business keywords
+  - Add match_type column to business_keywords table with default 'exact'
+  - Create migration 003_add_match_type_to_business_keywords
+  - Update DatabaseManager methods to handle match_type parameter
+  - Update BusinessMappingManager to set match_type='exact' for new businesses
+  - Update all test fixtures to include match_type column
+  - Ensure all keywords created for new businesses have match_type='exact'
+  - **Story Points**: 5
+
+- [x] **T7.8** - Add match type dropdown to business creation and keyword editing
+  - Add match type dropdown to AddBusinessDialog with Exact/Fuzzy/Partial options
+  - Add match type dropdown to EditKeywordDialog with current value selection
+  - Update BusinessKeywordsTab to handle match_type parameter in add_business and edit_keyword
+  - Update BusinessMappingManager.add_business to accept match_type parameter
+  - Ensure all dialogs properly validate and handle match_type selection
+  - Test all new functionality with comprehensive test suite
+  - **Story Points**: 3
+
+- [x] **T7.9** - Enable editing of business names and keywords together
+  - Update EditKeywordDialog to allow editing both business name and keyword
+  - Add update_business_name method to DatabaseManager
+  - Add update_business_and_keyword method to BusinessMappingManager
+  - Update BusinessKeywordsTab to handle business name changes in keyword editing
+  - Add comprehensive validation for business name and keyword editing
+  - Add tests for new business name update functionality
+  - Ensure proper error handling for duplicate business names
+  - **Story Points**: 4
+
 #### Definition of Done
 - [ ] Keywords management functional
 - [ ] CRUD operations working

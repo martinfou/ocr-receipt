@@ -67,6 +67,7 @@ class DatabaseManager:
                     business_id INTEGER NOT NULL,
                     keyword TEXT NOT NULL,
                     is_case_sensitive BOOLEAN DEFAULT 0,
+                    match_type TEXT NOT NULL DEFAULT 'exact',
                     last_used TIMESTAMP,
                     usage_count INTEGER DEFAULT 0,
                     FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE
@@ -155,40 +156,42 @@ class DatabaseManager:
             logging.error(f"Database batch query failed: {e}\nQuery: {query}")
             raise DatabaseError(f"Batch query failed: {e}")
 
-    def add_keyword(self, business_id: int, keyword: str, is_case_sensitive: int = 0) -> bool:
+    def add_keyword(self, business_id: int, keyword: str, is_case_sensitive: int = 0, match_type: str = "exact") -> bool:
         """
         Add a keyword for a business.
         :param business_id: ID of the business
         :param keyword: Keyword string
         :param is_case_sensitive: 0 (case-insensitive) or 1 (case-sensitive)
+        :param match_type: Type of matching ('exact', 'fuzzy', etc.)
         :return: True if added, False if error
         """
         try:
             query = (
-                "INSERT INTO business_keywords (business_id, keyword, is_case_sensitive) "
-                "VALUES (?, ?, ?)"
+                "INSERT INTO business_keywords (business_id, keyword, is_case_sensitive, match_type) "
+                "VALUES (?, ?, ?, ?)"
             )
-            self.execute_query(query, (business_id, keyword, is_case_sensitive))
+            self.execute_query(query, (business_id, keyword, is_case_sensitive, match_type))
             return True
         except Exception as e:
             logging.error(f"Failed to add keyword: {e}")
             return False
 
-    def update_keyword(self, business_id: int, old_keyword: str, new_keyword: str, is_case_sensitive: int) -> bool:
+    def update_keyword(self, business_id: int, old_keyword: str, new_keyword: str, is_case_sensitive: int, match_type: str = "exact") -> bool:
         """
         Update an existing keyword for a business.
         :param business_id: ID of the business
         :param old_keyword: Original keyword to update
         :param new_keyword: New keyword text
         :param is_case_sensitive: 0 (case-insensitive) or 1 (case-sensitive)
+        :param match_type: Type of matching ('exact', 'fuzzy', etc.)
         :return: True if updated, False if error
         """
         try:
             query = (
-                "UPDATE business_keywords SET keyword = ?, is_case_sensitive = ? "
+                "UPDATE business_keywords SET keyword = ?, is_case_sensitive = ?, match_type = ? "
                 "WHERE business_id = ? AND keyword = ?"
             )
-            self.execute_query(query, (new_keyword, is_case_sensitive, business_id, old_keyword))
+            self.execute_query(query, (new_keyword, is_case_sensitive, match_type, business_id, old_keyword))
             return True
         except Exception as e:
             logging.error(f"Failed to update keyword: {e}")
@@ -254,12 +257,45 @@ class DatabaseManager:
             logging.error(f"Failed to get businesses: {e}")
             return []
 
+    def get_business_by_name(self, business_name: str) -> Optional[Dict[str, Any]]:
+        """
+        Get a business by name from the database.
+        :param business_name: Name of the business to find
+        :return: Business dictionary or None if not found
+        """
+        try:
+            query = "SELECT id, name FROM businesses WHERE name = ?"
+            cursor = self.execute_query(query, (business_name,))
+            row = cursor.fetchone()
+            if row:
+                columns = [desc[0] for desc in cursor.description]
+                return dict(zip(columns, row))
+            return None
+        except Exception as e:
+            logging.error(f"Failed to get business by name: {e}")
+            return None
+
+    def update_business_name(self, business_id: int, new_name: str) -> bool:
+        """
+        Update a business name.
+        :param business_id: ID of the business to update
+        :param new_name: New name for the business
+        :return: True if updated, False if error
+        """
+        try:
+            query = "UPDATE businesses SET name = ? WHERE id = ?"
+            self.execute_query(query, (new_name, business_id))
+            return True
+        except Exception as e:
+            logging.error(f"Failed to update business name: {e}")
+            return False
+
     def get_all_keywords(self):
         """
         Return all keywords with their associated business names and properties.
         """
         query = '''
-            SELECT bk.keyword, bk.is_case_sensitive, bk.last_used, bk.usage_count, b.name as business_name
+            SELECT bk.keyword, bk.is_case_sensitive, bk.match_type, bk.last_used, bk.usage_count, b.name as business_name
             FROM business_keywords bk
             JOIN businesses b ON bk.business_id = b.id
         '''

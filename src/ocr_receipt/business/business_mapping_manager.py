@@ -26,7 +26,7 @@ class BusinessMappingManager:
             # Log error but don't fail initialization
             print(f"Warning: Database initialization failed: {e}")
 
-    def add_business(self, business_name: str, metadata: Optional[Dict[str, Any]] = None) -> bool:
+    def add_business(self, business_name: str, metadata: Optional[Dict[str, Any]] = None, match_type: str = "exact") -> bool:
         """Add a new business to the database. Returns True if added, False if already exists or error."""
         try:
             # Check if business already exists
@@ -34,48 +34,76 @@ class BusinessMappingManager:
             if business_name in names:
                 return False
             self.db_manager.add_business(business_name, metadata or {})
-            # Automatically add an exact keyword for the business name (case-insensitive by default)
-            self.add_keyword(business_name, business_name, is_case_sensitive=0)
+            # Automatically add a keyword for the business name with the specified match type (case-insensitive by default)
+            self.add_keyword(business_name, business_name, is_case_sensitive=0, match_type=match_type)
             return True
         except Exception as e:
             # Log error
             print(f"Error adding business: {e}")
             return False
 
-    def add_keyword(self, business_name: str, keyword: str, is_case_sensitive: int = 0) -> bool:
+    def add_keyword(self, business_name: str, keyword: str, is_case_sensitive: int = 0, match_type: str = "exact") -> bool:
         """Add a keyword for a business. Returns True if added, False if error."""
         try:
-            # Find business ID
-            businesses = self.db_manager.get_all_businesses()
-            business = next((b for b in businesses if b["name"] == business_name), None)
+            # Find business ID efficiently
+            business = self.db_manager.get_business_by_name(business_name)
             if not business:
                 return False
             business_id = business["id"]
-            return self.db_manager.add_keyword(business_id, keyword, is_case_sensitive)
+            return self.db_manager.add_keyword(business_id, keyword, is_case_sensitive, match_type)
         except Exception as e:
             print(f"Error adding keyword: {e}")
             return False
 
-    def update_keyword(self, business_name: str, old_keyword: str, new_keyword: str, is_case_sensitive: int) -> bool:
+    def update_keyword(self, business_name: str, old_keyword: str, new_keyword: str, is_case_sensitive: int, match_type: str = "exact") -> bool:
         """Update a keyword for a business. Returns True if updated, False if error."""
         try:
-            # Find business ID
-            businesses = self.db_manager.get_all_businesses()
-            business = next((b for b in businesses if b["name"] == business_name), None)
+            # Find business ID efficiently
+            business = self.db_manager.get_business_by_name(business_name)
             if not business:
                 return False
             business_id = business["id"]
-            return self.db_manager.update_keyword(business_id, old_keyword, new_keyword, is_case_sensitive)
+            return self.db_manager.update_keyword(business_id, old_keyword, new_keyword, is_case_sensitive, match_type)
         except Exception as e:
             print(f"Error updating keyword: {e}")
+            return False
+
+    def update_business_and_keyword(self, old_business_name: str, new_business_name: str, old_keyword: str, new_keyword: str, is_case_sensitive: int, match_type: str = "exact") -> bool:
+        """
+        Update both business name and keyword in a single operation.
+        Returns True if updated, False if error.
+        """
+        try:
+            # Find the original business
+            old_business = self.db_manager.get_business_by_name(old_business_name)
+            if not old_business:
+                return False
+            
+            old_business_id = old_business["id"]
+            
+            # Check if new business name already exists (and it's different from old)
+            if new_business_name != old_business_name:
+                existing_business = self.db_manager.get_business_by_name(new_business_name)
+                if existing_business:
+                    return False  # New business name already exists
+            
+            # Update the business name first
+            if new_business_name != old_business_name:
+                success = self.db_manager.update_business_name(old_business_id, new_business_name)
+                if not success:
+                    return False
+            
+            # Update the keyword
+            return self.db_manager.update_keyword(old_business_id, old_keyword, new_keyword, is_case_sensitive, match_type)
+        except Exception as e:
+            print(f"Error updating business and keyword: {e}")
             return False
 
     def delete_keyword(self, business_name: str, keyword: str) -> bool:
         """Delete a keyword for a business. Returns True if deleted, False if error."""
         try:
-            # Find business ID
-            businesses = self.db_manager.get_all_businesses()
-            business = next((b for b in businesses if b["name"] == business_name), None)
+            # Find business ID efficiently
+            business = self.db_manager.get_business_by_name(business_name)
             if not business:
                 return False
             business_id = business["id"]

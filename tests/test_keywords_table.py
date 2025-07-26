@@ -31,6 +31,7 @@ def sample_keywords():
             "business_name": "Test Business 1",
             "keyword": "test1",
             "is_case_sensitive": 0,
+            "match_type": "fuzzy",
             "usage_count": 5,
             "last_used": "2024-01-15 10:30:00"
         },
@@ -38,6 +39,7 @@ def sample_keywords():
             "business_name": "Test Business 2", 
             "keyword": "TEST2",
             "is_case_sensitive": 1,
+            "match_type": "exact",
             "usage_count": 10,
             "last_used": "2024-01-16 14:20:00"
         },
@@ -45,6 +47,7 @@ def sample_keywords():
             "business_name": "Test Business 1",
             "keyword": "another_keyword",
             "is_case_sensitive": 0,
+            "match_type": "fuzzy",
             "usage_count": 0,
             "last_used": None
         }
