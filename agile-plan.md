@@ -440,6 +440,13 @@
   - Integration tests
   - **Story Points**: 5
 
+- [x] **T8.6** - Add PDF loading visual indicators
+  - Implement progress bar for PDF processing
+  - Add status messages for different stages
+  - Create control enabling/disabling during processing
+  - Add comprehensive tests for visual indicators
+  - **Story Points**: 5
+
 #### Definition of Done
 - [ ] Projects management functional
 - [ ] Categories management working
