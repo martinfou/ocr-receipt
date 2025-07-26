@@ -56,6 +56,34 @@ class BusinessMappingManager:
             print(f"Error adding keyword: {e}")
             return False
 
+    def update_keyword(self, business_name: str, old_keyword: str, new_keyword: str, is_case_sensitive: int) -> bool:
+        """Update a keyword for a business. Returns True if updated, False if error."""
+        try:
+            # Find business ID
+            businesses = self.db_manager.get_all_businesses()
+            business = next((b for b in businesses if b["name"] == business_name), None)
+            if not business:
+                return False
+            business_id = business["id"]
+            return self.db_manager.update_keyword(business_id, old_keyword, new_keyword, is_case_sensitive)
+        except Exception as e:
+            print(f"Error updating keyword: {e}")
+            return False
+
+    def delete_keyword(self, business_name: str, keyword: str) -> bool:
+        """Delete a keyword for a business. Returns True if deleted, False if error."""
+        try:
+            # Find business ID
+            businesses = self.db_manager.get_all_businesses()
+            business = next((b for b in businesses if b["name"] == business_name), None)
+            if not business:
+                return False
+            business_id = business["id"]
+            return self.db_manager.delete_keyword(business_id, keyword)
+        except Exception as e:
+            print(f"Error deleting keyword: {e}")
+            return False
+
     def get_business_names(self) -> List[str]:
         """Get all business names from the database."""
         try:

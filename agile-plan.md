@@ -368,7 +368,7 @@
   - Implement selection handling
   - **Story Points**: 8
 
-- [ ] **T7.3** - Create Add/Edit Dialogs
+- [x] **T7.3** - Create Add/Edit Dialogs
   - Implement AddBusinessDialog
   - Create EditKeywordDialog
   - Add validation and error handling

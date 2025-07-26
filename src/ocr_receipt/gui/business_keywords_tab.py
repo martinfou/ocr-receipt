@@ -1,6 +1,7 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QMessageBox, QDialog
 from ..business.business_mapping_manager import BusinessMappingManager
 from .dialogs.add_business_dialog import AddBusinessDialog
+from .dialogs.edit_keyword_dialog import EditKeywordDialog
 from .widgets.keywords_table import KeywordsTable
 
 class BusinessKeywordsTab(QWidget):
@@ -65,8 +66,21 @@ class BusinessKeywordsTab(QWidget):
     def _on_edit_keyword(self) -> None:
         selected_keyword = self.keywords_table.get_selected_keyword()
         if selected_keyword:
-            # TODO: Implement EditKeywordDialog
-            QMessageBox.information(self, "Edit Keyword", f"Edit functionality for keyword '{selected_keyword.get('keyword')}' will be implemented in T7.3")
+            dialog = EditKeywordDialog(selected_keyword, self)
+            if dialog.exec() == QDialog.DialogCode.Accepted:
+                edited_data = dialog.get_edited_data()
+                if edited_data and dialog.has_changes():
+                    success = self.business_mapping_manager.update_keyword(
+                        edited_data['business_name'],
+                        edited_data['original_keyword'],
+                        edited_data['keyword'],
+                        edited_data['is_case_sensitive']
+                    )
+                    if success:
+                        self._load_keywords()
+                        QMessageBox.information(self, "Success", "Keyword updated successfully.")
+                    else:
+                        QMessageBox.warning(self, "Update Failed", "Failed to update keyword. Please try again.")
         else:
             QMessageBox.information(self, "No Selection", "Please select a keyword to edit.")
 
@@ -77,12 +91,33 @@ class BusinessKeywordsTab(QWidget):
             reply = QMessageBox.question(
                 self, 
                 "Delete Keywords", 
-                f"Are you sure you want to delete {count} selected keyword(s)?",
+                f"Are you sure you want to delete {count} selected keyword(s)?\n\nThis action cannot be undone.",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
             )
             if reply == QMessageBox.StandardButton.Yes:
-                # TODO: Implement keyword deletion
-                QMessageBox.information(self, "Delete Keywords", f"Delete functionality for {count} keywords will be implemented in T7.3")
+                success_count = 0
+                failed_count = 0
+                
+                for keyword_data in selected_keywords:
+                    success = self.business_mapping_manager.delete_keyword(
+                        keyword_data['business_name'],
+                        keyword_data['keyword']
+                    )
+                    if success:
+                        success_count += 1
+                    else:
+                        failed_count += 1
+                
+                self._load_keywords()
+                
+                if failed_count == 0:
+                    QMessageBox.information(self, "Success", f"Successfully deleted {success_count} keyword(s).")
+                elif success_count == 0:
+                    QMessageBox.warning(self, "Delete Failed", f"Failed to delete {failed_count} keyword(s).")
+                else:
+                    QMessageBox.information(self, "Partial Success", 
+                                          f"Successfully deleted {success_count} keyword(s).\n"
+                                          f"Failed to delete {failed_count} keyword(s).")
         else:
             QMessageBox.information(self, "No Selection", "Please select keywords to delete.")
 
