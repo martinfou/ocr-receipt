@@ -174,6 +174,57 @@ class DatabaseManager:
             logging.error(f"Failed to add keyword: {e}")
             return False
 
+    def update_keyword(self, business_id: int, old_keyword: str, new_keyword: str, is_case_sensitive: int) -> bool:
+        """
+        Update an existing keyword for a business.
+        :param business_id: ID of the business
+        :param old_keyword: Original keyword to update
+        :param new_keyword: New keyword text
+        :param is_case_sensitive: 0 (case-insensitive) or 1 (case-sensitive)
+        :return: True if updated, False if error
+        """
+        try:
+            query = (
+                "UPDATE business_keywords SET keyword = ?, is_case_sensitive = ? "
+                "WHERE business_id = ? AND keyword = ?"
+            )
+            self.execute_query(query, (new_keyword, is_case_sensitive, business_id, old_keyword))
+            return True
+        except Exception as e:
+            logging.error(f"Failed to update keyword: {e}")
+            return False
+
+    def delete_keyword(self, business_id: int, keyword: str) -> bool:
+        """
+        Delete a keyword for a business.
+        :param business_id: ID of the business
+        :param keyword: Keyword to delete
+        :return: True if deleted, False if error
+        """
+        try:
+            query = "DELETE FROM business_keywords WHERE business_id = ? AND keyword = ?"
+            self.execute_query(query, (business_id, keyword))
+            return True
+        except Exception as e:
+            logging.error(f"Failed to delete keyword: {e}")
+            return False
+
+    def get_keyword_id(self, business_id: int, keyword: str) -> Optional[int]:
+        """
+        Get the ID of a specific keyword.
+        :param business_id: ID of the business
+        :param keyword: Keyword text
+        :return: Keyword ID if found, None otherwise
+        """
+        try:
+            query = "SELECT id FROM business_keywords WHERE business_id = ? AND keyword = ?"
+            cursor = self.execute_query(query, (business_id, keyword))
+            result = cursor.fetchone()
+            return result[0] if result else None
+        except Exception as e:
+            logging.error(f"Failed to get keyword ID: {e}")
+            return None
+
     def add_business(self, business_name: str, metadata: Optional[Dict] = None) -> int:
         """
         Add a new business to the database.

@@ -1,14 +1,9 @@
 import pytest
-from PyQt6.QtWidgets import QApplication
 from ocr_receipt.gui.business_keywords_tab import BusinessKeywordsTab
 from ocr_receipt.business.database_manager import DatabaseManager
 from ocr_receipt.business.business_mapping_manager import BusinessMappingManager
 import tempfile
 import os
-
-@pytest.fixture(scope="module")
-def app():
-    return QApplication([])
 
 @pytest.fixture
 def temp_db():
