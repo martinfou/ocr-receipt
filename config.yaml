@@ -10,4 +10,5 @@ logging:
 
 app:
   mode: development
-  ocr_language: eng 
+  ocr_language: eng
+  ui_language: en  # Language for user interface (en, fr) 

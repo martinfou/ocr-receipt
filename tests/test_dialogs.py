@@ -26,14 +26,16 @@ class TestAddBusinessDialog:
 
     def test_initialization(self, qtbot):
         """Test that the dialog initializes correctly."""
+        from ocr_receipt.utils.translation_helper import tr
         dialog = AddBusinessDialog()
         qtbot.addWidget(dialog)
-        assert dialog.windowTitle() == "Add Business"
+        assert dialog.windowTitle() == tr("add_business_dialog.title")
         assert dialog.isModal() is True
         assert dialog.business_name is None
 
     def test_ui_elements(self, qtbot):
         """Test that all UI elements are present."""
+        from ocr_receipt.utils.translation_helper import tr
         dialog = AddBusinessDialog()
         qtbot.addWidget(dialog)
         
@@ -43,8 +45,8 @@ class TestAddBusinessDialog:
         assert hasattr(dialog, 'cancel_button')
         
         # Check button text
-        assert dialog.ok_button.text() == "Add Business"
-        assert dialog.cancel_button.text() == "Cancel"
+        assert dialog.ok_button.text() == tr("add_business_dialog.add_button")
+        assert dialog.cancel_button.text() == tr("add_business_dialog.cancel_button")
 
     def test_validation_empty_input(self, qtbot, monkeypatch):
         """Test validation with empty input."""

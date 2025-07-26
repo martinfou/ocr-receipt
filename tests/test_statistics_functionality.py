@@ -12,9 +12,9 @@ from unittest.mock import Mock, patch
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import Qt
 
-from src.ocr_receipt.business.database_manager import DatabaseManager
-from src.ocr_receipt.business.business_mapping_manager import BusinessMappingManager
-from src.ocr_receipt.gui.widgets.statistics_panel import StatisticsPanel
+from ocr_receipt.business.database_manager import DatabaseManager
+from ocr_receipt.business.business_mapping_manager import BusinessMappingManager
+from ocr_receipt.gui.widgets.statistics_panel import StatisticsPanel
 
 
 class TestDatabaseManagerStatistics:
@@ -229,16 +229,11 @@ class TestStatisticsPanel:
     """Test the StatisticsPanel widget."""
     
     @pytest.fixture
-    def app(self):
-        """Create QApplication for widget testing."""
-        app = QApplication([])
-        yield app
-        app.quit()
-    
-    @pytest.fixture
-    def statistics_panel(self, app):
+    def statistics_panel(self, qtbot):
         """Create a StatisticsPanel widget."""
-        return StatisticsPanel()
+        panel = StatisticsPanel()
+        qtbot.addWidget(panel)
+        return panel
     
     def test_statistics_panel_creation(self, statistics_panel):
         """Test that the statistics panel is created correctly."""
@@ -396,14 +391,7 @@ class TestStatisticsPanel:
 class TestStatisticsIntegration:
     """Integration tests for statistics functionality."""
     
-    @pytest.fixture
-    def app(self):
-        """Create QApplication for integration testing."""
-        app = QApplication([])
-        yield app
-        app.quit()
-    
-    def test_full_statistics_workflow(self, app):
+    def test_full_statistics_workflow(self, qtbot):
         """Test the complete statistics workflow from database to GUI."""
         with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as tmp:
             db_path = tmp.name
@@ -437,6 +425,7 @@ class TestStatisticsIntegration:
             
             # Create and populate statistics panel
             statistics_panel = StatisticsPanel()
+            qtbot.addWidget(statistics_panel)
             statistics_panel.load_statistics(stats)
             
             # Verify the data flows correctly

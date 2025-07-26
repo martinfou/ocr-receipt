@@ -380,6 +380,13 @@
   - Create summary displays
   - **Story Points**: 5
 
+- [x] **T8.0** - Add multi-language support
+  - Implement translation system
+  - Create English and French translations
+  - Add language settings dialog
+  - Update GUI components to use translations
+  - **Story Points**: 8
+
 - [ ] **T7.5** - Add tab tests
   - GUI tests for keywords tab
   - Dialog tests
