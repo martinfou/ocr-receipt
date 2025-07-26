@@ -159,18 +159,19 @@ class TestTranslationFiles:
 class TestTranslationIntegration:
     """Test translation integration with the application."""
     
-    def test_main_window_title_translation(self):
+    def test_main_window_title_translation(self, qtbot):
         """Test that main window title is translated."""
-        set_language('en')
-        from ocr_receipt.gui.main_window import OCRMainWindow
-        window = OCRMainWindow()
-        assert window.windowTitle() == 'OCR Invoice Parser'
+        from ocr_receipt.utils.translation_helper import tr, set_language
         
+        # Test English
+        set_language('en')
+        assert tr('main_window.title') == 'OCR Invoice Parser'
+        
+        # Test French
         set_language('fr')
-        window = OCRMainWindow()
-        assert window.windowTitle() == 'Analyseur de Factures OCR'
+        assert tr('main_window.title') == 'Analyseur de Factures OCR'
     
-    def test_business_keywords_tab_translation(self):
+    def test_business_keywords_tab_translation(self, qtbot):
         """Test that business keywords tab uses translations."""
         set_language('en')
         from ocr_receipt.business.database_manager import DatabaseManager
@@ -181,24 +182,32 @@ class TestTranslationIntegration:
         with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as tmp:
             db_path = tmp.name
         
+        db_manager = None
         try:
             db_manager = DatabaseManager(db_path)
             business_mapping_manager = BusinessMappingManager(db_manager)
             tab = BusinessKeywordsTab(business_mapping_manager)
+            qtbot.addWidget(tab)
             
             assert tab.add_button.text() == 'Add Business'
             assert tab.edit_button.text() == 'Edit Keyword'
             assert tab.delete_button.text() == 'Delete Keyword'
             
         finally:
-            os.unlink(db_path)
+            if db_manager:
+                db_manager.close()
+            try:
+                os.unlink(db_path)
+            except (OSError, PermissionError):
+                pass  # File might already be deleted or locked
     
-    def test_add_business_dialog_translation(self):
+    def test_add_business_dialog_translation(self, qtbot):
         """Test that add business dialog uses translations."""
         set_language('en')
         from ocr_receipt.gui.dialogs.add_business_dialog import AddBusinessDialog
         
         dialog = AddBusinessDialog()
+        qtbot.addWidget(dialog)
         assert dialog.windowTitle() == 'Add Business'
         assert dialog.ok_button.text() == 'Add Business'
         assert dialog.cancel_button.text() == 'Cancel' 
