@@ -1,14 +1,19 @@
-# Sample configuration for OCR Invoice Parser
-
-database:
-  path: ocr_receipts.db
-  timeout: 30
-
-logging:
-  level: INFO
-  file: app.log
-
 app:
   mode: development
   ocr_language: eng
-  ui_language: en  # Language for user interface (en, fr) 
+  ui_language: fr
+database:
+  path: ocr_receipts.db
+  timeout: 30
+gui:
+  auto_save: true
+  show_preview: true
+  window_size:
+  - 1400
+  - 900
+logging:
+  file: app.log
+  level: INFO
+ocr:
+  confidence_threshold: 0.8
+  max_retries: 3

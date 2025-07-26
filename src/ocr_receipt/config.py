@@ -19,10 +19,43 @@ class ConfigManager:
         Load configuration from the YAML file.
         :return: Configuration dictionary.
         """
+        default_config = {
+            'database': {
+                'path': 'ocr_receipts.db',
+                'timeout': 30
+            },
+            'logging': {
+                'level': 'INFO',
+                'file': 'app.log'
+            },
+            'app': {
+                'mode': 'development',
+                'ocr_language': 'eng',
+                'ui_language': 'en'
+            },
+            'gui': {
+                'window_size': [1200, 800],
+                'auto_save': True,
+                'show_preview': True
+            },
+            'ocr': {
+                'confidence_threshold': 0.6,
+                'max_retries': 3
+            }
+        }
+        
         if not os.path.exists(self.config_path):
-            return {}
+            # Create default config file
+            self._config = default_config
+            self.save()
+            return default_config
+        
         with open(self.config_path, 'r', encoding='utf-8') as f:
-            return yaml.safe_load(f) or {}
+            loaded_config = yaml.safe_load(f) or {}
+            
+        # Merge with defaults to ensure all keys exist
+        merged_config = self._merge_configs(default_config, loaded_config)
+        return merged_config
 
     def get(self, key: str, default: Optional[Any] = None) -> Any:
         """
@@ -68,4 +101,17 @@ class ConfigManager:
             if k not in d or not isinstance(d[k], dict):
                 d[k] = {}
             d = d[k]
-        d[keys[-1]] = value 
+        d[keys[-1]] = value
+
+    @staticmethod
+    def _merge_configs(default: dict, loaded: dict) -> dict:
+        """
+        Merge loaded configuration with defaults, ensuring all default keys exist.
+        """
+        result = default.copy()
+        for key, value in loaded.items():
+            if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+                result[key] = ConfigManager._merge_configs(result[key], value)
+            else:
+                result[key] = value
+        return result 
