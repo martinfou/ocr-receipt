@@ -264,19 +264,42 @@ class TestKeywordsTable:
         with qtbot.waitSignal(keywords_table.keyword_selected):
             keywords_table._edit_selected_keyword()
 
-    def test_context_menu(self, keywords_table, sample_keywords, qtbot):
+    def test_context_menu(self, keywords_table, sample_keywords, qtbot, monkeypatch):
         """Test context menu functionality."""
         keywords_table.load_keywords(sample_keywords)
         
         # Right-click on first row
         keywords_table.selectRow(0)
         
+        # Mock the QMenu constructor to prevent actual menu creation
+        from PyQt6.QtWidgets import QMenu
+        original_menu_init = QMenu.__init__
+        
+        class MockMenu:
+            def __init__(self, parent=None):
+                self.parent = parent
+                self.actions = []
+                
+            def addAction(self, action):
+                self.actions.append(action)
+                
+            def addSeparator(self):
+                pass
+                
+            def exec(self, pos):
+                return None
+        
+        monkeypatch.setattr(QMenu, '__init__', MockMenu.__init__)
+        monkeypatch.setattr(QMenu, 'addAction', MockMenu.addAction)
+        monkeypatch.setattr(QMenu, 'addSeparator', MockMenu.addSeparator)
+        monkeypatch.setattr(QMenu, 'exec', MockMenu.exec)
+        
         # Create a mock event for testing
         from PyQt6.QtGui import QContextMenuEvent
         from PyQt6.QtCore import QPoint
         mock_event = QContextMenuEvent(QContextMenuEvent.Reason.Mouse, QPoint(0, 0))
         
-        # This should not crash
+        # This should not crash and should not show a popup
         keywords_table.contextMenuEvent(mock_event)
 
     def test_alternating_row_colors(self, keywords_table):
