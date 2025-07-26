@@ -57,13 +57,16 @@ class SinglePDFTab(QWidget):
 
         self.progress_bar = QProgressBar()
         self.progress_bar.setVisible(False)
-        self.progress_bar.setMaximumHeight(20)
+        self.progress_bar.setMaximumHeight(24)
+        self.progress_bar.setMinimumHeight(20)
         self.progress_bar.setStyleSheet("""
             QProgressBar {
-                border: 1px solid #ccc;
-                border-radius: 3px;
+                border: 2px solid #0078D4;
+                border-radius: 4px;
                 text-align: center;
-                background-color: #f5f5f5;
+                background-color: #f0f0f0;
+                font-weight: bold;
+                color: #333;
             }
             QProgressBar::chunk {
                 background-color: #0078D4;
@@ -72,7 +75,7 @@ class SinglePDFTab(QWidget):
         """)
 
         self.status_label = QLabel("Ready to process PDF")
-        self.status_label.setStyleSheet("color: #666; font-size: 11px; padding-left: 8px;")
+        self.status_label.setStyleSheet("color: #333; font-size: 12px; font-weight: bold; padding-left: 8px;")
 
         progress_layout.addWidget(self.progress_bar)
         progress_layout.addWidget(self.status_label)
@@ -171,6 +174,9 @@ class SinglePDFTab(QWidget):
         file_path = self.file_path_edit.text()
         if file_path:
             self._process_pdf_file(file_path)
+        else:
+            # If no file is selected, show a test of the progress bar
+            self.test_progress_bar_visibility()
 
     def _on_browse_file(self) -> None:
         from PyQt6.QtWidgets import QFileDialog, QMessageBox
@@ -182,12 +188,13 @@ class SinglePDFTab(QWidget):
     def _process_pdf_file(self, file_path: str) -> None:
         """Process PDF file with visual feedback."""
         from PyQt6.QtWidgets import QMessageBox
+        from PyQt6.QtCore import QTimer
         
         try:
             # Stage 1: Loading
             self.show_processing_stage("loading")
             
-            # Load PDF preview
+            # Load PDF preview (this might take some time)
             self.pdf_preview.load_pdf(file_path)
             
             # Stage 2: Converting to images
@@ -199,7 +206,7 @@ class SinglePDFTab(QWidget):
             # Stage 4: Data Extraction
             self.show_processing_stage("extracting")
             
-            # Parse the PDF
+            # Parse the PDF (this is the main processing)
             config = ConfigManager()._config  # Get full config dict
             parser = InvoiceParser(config)
             result = parser.parse(Path(file_path))
@@ -265,7 +272,11 @@ class SinglePDFTab(QWidget):
             # Show progress bar for known processing stages or unknown stages
             self.progress_bar.setVisible(True)
             self.progress_bar.setRange(0, 0)  # Indeterminate progress
+            self.progress_bar.setValue(0)  # Ensure it starts at 0
             self._disable_controls_during_processing()
+            
+            # Force the progress bar to update immediately
+            self.progress_bar.repaint()
         else:
             # Hide progress bar for completion stages
             self.progress_bar.setVisible(False)
@@ -314,4 +325,19 @@ class SinglePDFTab(QWidget):
             
         except Exception as e:
             self.show_processing_stage("error")
-            # Error handling is done in the calling method 
+            # Error handling is done in the calling method
+
+    def test_progress_bar_visibility(self):
+        """Test method to verify progress bar visibility - for debugging."""
+        print("Testing progress bar visibility...")
+        print(f"Progress bar visible: {self.progress_bar.isVisible()}")
+        print(f"Progress bar geometry: {self.progress_bar.geometry()}")
+        print(f"Progress bar parent: {self.progress_bar.parent()}")
+        
+        # Show the progress bar
+        self.show_processing_stage("loading")
+        print(f"After show_processing_stage - Progress bar visible: {self.progress_bar.isVisible()}")
+        
+        # Wait a bit and then hide
+        from PyQt6.QtCore import QTimer
+        QTimer.singleShot(3000, lambda: self.show_processing_stage("complete")) 
