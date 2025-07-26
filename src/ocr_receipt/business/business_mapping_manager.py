@@ -153,4 +153,52 @@ class BusinessMappingManager:
             return None
         except Exception as e:
             print(f"Error in find_business_match: {e}")
-            return None 
+            return None
+
+    def get_keyword_statistics(self) -> Dict[str, Any]:
+        """
+        Get comprehensive keyword statistics for reporting.
+        :return: Dictionary containing various statistics
+        """
+        try:
+            return self.db_manager.get_keyword_statistics()
+        except Exception as e:
+            print(f"Error getting keyword statistics: {e}")
+            return {}
+
+    def get_business_statistics(self) -> Dict[str, Any]:
+        """
+        Get business-specific statistics for reporting.
+        :return: Dictionary containing business statistics
+        """
+        try:
+            return self.db_manager.get_business_statistics()
+        except Exception as e:
+            print(f"Error getting business statistics: {e}")
+            return {}
+
+    def get_performance_metrics(self) -> Dict[str, Any]:
+        """
+        Get performance and efficiency metrics for reporting.
+        :return: Dictionary containing performance metrics
+        """
+        try:
+            return self.db_manager.get_performance_metrics()
+        except Exception as e:
+            print(f"Error getting performance metrics: {e}")
+            return {}
+
+    def get_comprehensive_statistics(self) -> Dict[str, Any]:
+        """
+        Get all statistics in one call for comprehensive reporting.
+        :return: Dictionary containing all statistics
+        """
+        try:
+            stats = {}
+            stats['keywords'] = self.get_keyword_statistics()
+            stats['businesses'] = self.get_business_statistics()
+            stats['performance'] = self.get_performance_metrics()
+            return stats
+        except Exception as e:
+            print(f"Error getting comprehensive statistics: {e}")
+            return {} 

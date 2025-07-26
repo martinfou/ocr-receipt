@@ -1,8 +1,10 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QMessageBox, QDialog
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QMessageBox, QDialog, QSplitter, QTabWidget
+from PyQt6.QtCore import Qt
 from ..business.business_mapping_manager import BusinessMappingManager
 from .dialogs.add_business_dialog import AddBusinessDialog
 from .dialogs.edit_keyword_dialog import EditKeywordDialog
 from .widgets.keywords_table import KeywordsTable
+from .widgets.statistics_panel import StatisticsPanel
 
 class BusinessKeywordsTab(QWidget):
     """
@@ -14,6 +16,7 @@ class BusinessKeywordsTab(QWidget):
         self._setup_ui()
         self._setup_connections()
         self._load_keywords()
+        self._load_statistics()
 
     def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
@@ -24,33 +27,67 @@ class BusinessKeywordsTab(QWidget):
         self.edit_button = QPushButton("Edit Keyword")
         self.delete_button = QPushButton("Delete Keyword")
         self.refresh_button = QPushButton("Refresh")
+        self.show_stats_button = QPushButton("Show Statistics")
+        self.show_stats_button.setCheckable(True)
+        self.show_stats_button.setChecked(True)
         
         toolbar.addWidget(self.add_button)
         toolbar.addWidget(self.edit_button)
         toolbar.addWidget(self.delete_button)
         toolbar.addWidget(self.refresh_button)
         toolbar.addStretch()
+        toolbar.addWidget(self.show_stats_button)
         layout.addLayout(toolbar)
 
+        # Main content area with splitter
+        self.splitter = QSplitter(Qt.Orientation.Horizontal)
+        layout.addWidget(self.splitter)
+
+        # Left side - Keywords table
+        left_widget = QWidget()
+        left_layout = QVBoxLayout(left_widget)
+        
         # Keywords table with filters
         self.keywords_table = KeywordsTable()
         self.keywords_table._setup_filter_widgets(self)  # Add filter widgets
-        layout.addWidget(self.keywords_table)
-
-        # Statistics label
+        left_layout.addWidget(self.keywords_table)
+        
+        # Simple statistics label (legacy)
         self.stats_label = QLabel()
-        layout.addWidget(self.stats_label)
+        left_layout.addWidget(self.stats_label)
+        
+        self.splitter.addWidget(left_widget)
+
+        # Right side - Statistics panel
+        self.statistics_panel = StatisticsPanel()
+        self.statistics_panel.refresh_button.clicked.connect(self._load_statistics)
+        self.splitter.addWidget(self.statistics_panel)
+        
+        # Set initial splitter sizes (60% keywords, 40% statistics)
+        self.splitter.setSizes([600, 400])
 
     def _setup_connections(self) -> None:
         self.add_button.clicked.connect(self._on_add_business)
         self.edit_button.clicked.connect(self._on_edit_keyword)
         self.delete_button.clicked.connect(self._on_delete_keyword)
         self.refresh_button.clicked.connect(self._load_keywords)
+        self.show_stats_button.toggled.connect(self._toggle_statistics)
         
         # Connect table signals
         self.keywords_table.keyword_selected.connect(self._on_keyword_selected)
         self.keywords_table.keyword_double_clicked.connect(self._on_keyword_double_clicked)
         self.keywords_table.selection_changed.connect(self._on_selection_changed)
+
+    def _toggle_statistics(self, show: bool) -> None:
+        """Toggle the visibility of the statistics panel."""
+        if show:
+            self.statistics_panel.show()
+            # Restore splitter sizes
+            self.splitter.setSizes([600, 400])
+        else:
+            self.statistics_panel.hide()
+            # Give all space to keywords table
+            self.splitter.setSizes([1000, 0])
 
     def _on_add_business(self) -> None:
         dialog = AddBusinessDialog(self)
@@ -60,6 +97,7 @@ class BusinessKeywordsTab(QWidget):
                 success = self.business_mapping_manager.add_business(business_name)
                 if success:
                     self._load_keywords()
+                    self._load_statistics()  # Refresh statistics after adding business
                 else:
                     QMessageBox.warning(self, "Add Business Failed", f"Business '{business_name}' already exists or could not be added.")
 
@@ -78,6 +116,7 @@ class BusinessKeywordsTab(QWidget):
                     )
                     if success:
                         self._load_keywords()
+                        self._load_statistics()  # Refresh statistics after editing
                         QMessageBox.information(self, "Success", "Keyword updated successfully.")
                     else:
                         QMessageBox.warning(self, "Update Failed", "Failed to update keyword. Please try again.")
@@ -109,6 +148,7 @@ class BusinessKeywordsTab(QWidget):
                         failed_count += 1
                 
                 self._load_keywords()
+                self._load_statistics()  # Refresh statistics after deleting
                 
                 if failed_count == 0:
                     QMessageBox.information(self, "Success", f"Successfully deleted {success_count} keyword(s).")
@@ -142,6 +182,14 @@ class BusinessKeywordsTab(QWidget):
         keywords = self.business_mapping_manager.get_keywords()
         self.keywords_table.load_keywords(keywords)
         self._update_statistics(keywords)
+
+    def _load_statistics(self) -> None:
+        """Load comprehensive statistics from the business mapping manager."""
+        try:
+            stats = self.business_mapping_manager.get_comprehensive_statistics()
+            self.statistics_panel.load_statistics(stats)
+        except Exception as e:
+            print(f"Error loading comprehensive statistics: {e}")
 
     def _update_statistics(self, keywords) -> None:
         total_keywords = len(keywords)

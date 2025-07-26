@@ -265,4 +265,219 @@ class DatabaseManager:
         '''
         cursor = self.execute_query(query)
         columns = [desc[0] for desc in cursor.description]
-        return [dict(zip(columns, row)) for row in cursor.fetchall()] 
+        return [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+    def get_keyword_statistics(self) -> Dict[str, Any]:
+        """
+        Get comprehensive keyword statistics for reporting.
+        :return: Dictionary containing various statistics
+        """
+        try:
+            stats = {}
+            
+            # Total counts
+            cursor = self.execute_query("SELECT COUNT(*) FROM businesses")
+            stats['total_businesses'] = cursor.fetchone()[0]
+            
+            cursor = self.execute_query("SELECT COUNT(*) FROM business_keywords")
+            stats['total_keywords'] = cursor.fetchone()[0]
+            
+            # Case sensitivity breakdown
+            cursor = self.execute_query("SELECT COUNT(*) FROM business_keywords WHERE is_case_sensitive = 1")
+            stats['case_sensitive_keywords'] = cursor.fetchone()[0]
+            
+            cursor = self.execute_query("SELECT COUNT(*) FROM business_keywords WHERE is_case_sensitive = 0")
+            stats['case_insensitive_keywords'] = cursor.fetchone()[0]
+            
+            # Usage statistics
+            cursor = self.execute_query("SELECT SUM(usage_count) FROM business_keywords")
+            total_usage = cursor.fetchone()[0]
+            stats['total_usage'] = total_usage or 0
+            
+            cursor = self.execute_query("SELECT AVG(usage_count) FROM business_keywords")
+            avg_usage = cursor.fetchone()[0]
+            stats['average_usage'] = round(avg_usage or 0, 2)
+            
+            cursor = self.execute_query("SELECT MAX(usage_count) FROM business_keywords")
+            max_usage = cursor.fetchone()[0]
+            stats['max_usage'] = max_usage or 0
+            
+            # Most used keywords
+            cursor = self.execute_query('''
+                SELECT bk.keyword, bk.usage_count, b.name as business_name
+                FROM business_keywords bk
+                JOIN businesses b ON bk.business_id = b.id
+                WHERE bk.usage_count > 0
+                ORDER BY bk.usage_count DESC
+                LIMIT 10
+            ''')
+            stats['most_used_keywords'] = [dict(zip(['keyword', 'usage_count', 'business_name'], row)) 
+                                          for row in cursor.fetchall()]
+            
+            # Recently used keywords
+            cursor = self.execute_query('''
+                SELECT bk.keyword, bk.last_used, b.name as business_name
+                FROM business_keywords bk
+                JOIN businesses b ON bk.business_id = b.id
+                WHERE bk.last_used IS NOT NULL
+                ORDER BY bk.last_used DESC
+                LIMIT 10
+            ''')
+            stats['recently_used_keywords'] = [dict(zip(['keyword', 'last_used', 'business_name'], row)) 
+                                              for row in cursor.fetchall()]
+            
+            # Business with most keywords
+            cursor = self.execute_query('''
+                SELECT b.name, COUNT(bk.id) as keyword_count
+                FROM businesses b
+                LEFT JOIN business_keywords bk ON b.id = bk.business_id
+                GROUP BY b.id, b.name
+                ORDER BY keyword_count DESC
+                LIMIT 10
+            ''')
+            stats['businesses_by_keyword_count'] = [dict(zip(['business_name', 'keyword_count'], row)) 
+                                                   for row in cursor.fetchall()]
+            
+            # Unused keywords (never used)
+            cursor = self.execute_query('''
+                SELECT bk.keyword, b.name as business_name
+                FROM business_keywords bk
+                JOIN businesses b ON bk.business_id = b.id
+                WHERE bk.usage_count = 0 OR bk.usage_count IS NULL
+                ORDER BY b.name, bk.keyword
+            ''')
+            stats['unused_keywords'] = [dict(zip(['keyword', 'business_name'], row)) 
+                                       for row in cursor.fetchall()]
+            
+            # Keywords by usage ranges
+            cursor = self.execute_query('''
+                SELECT 
+                    CASE 
+                        WHEN usage_count = 0 THEN 'Never Used'
+                        WHEN usage_count BETWEEN 1 AND 5 THEN 'Low Usage (1-5)'
+                        WHEN usage_count BETWEEN 6 AND 20 THEN 'Medium Usage (6-20)'
+                        WHEN usage_count BETWEEN 21 AND 50 THEN 'High Usage (21-50)'
+                        ELSE 'Very High Usage (50+)'
+                    END as usage_range,
+                    COUNT(*) as count
+                FROM business_keywords
+                GROUP BY usage_range
+                ORDER BY 
+                    CASE usage_range
+                        WHEN 'Never Used' THEN 1
+                        WHEN 'Low Usage (1-5)' THEN 2
+                        WHEN 'Medium Usage (6-20)' THEN 3
+                        WHEN 'High Usage (21-50)' THEN 4
+                        WHEN 'Very High Usage (50+)' THEN 5
+                    END
+            ''')
+            stats['keywords_by_usage_range'] = [dict(zip(['usage_range', 'count'], row)) 
+                                               for row in cursor.fetchall()]
+            
+            return stats
+            
+        except Exception as e:
+            logging.error(f"Failed to get keyword statistics: {e}")
+            return {}
+
+    def get_business_statistics(self) -> Dict[str, Any]:
+        """
+        Get business-specific statistics for reporting.
+        :return: Dictionary containing business statistics
+        """
+        try:
+            stats = {}
+            
+            # Business with highest total usage
+            cursor = self.execute_query('''
+                SELECT b.name, SUM(bk.usage_count) as total_usage
+                FROM businesses b
+                LEFT JOIN business_keywords bk ON b.id = bk.business_id
+                GROUP BY b.id, b.name
+                HAVING total_usage > 0
+                ORDER BY total_usage DESC
+                LIMIT 10
+            ''')
+            stats['businesses_by_total_usage'] = [dict(zip(['business_name', 'total_usage'], row)) 
+                                                 for row in cursor.fetchall()]
+            
+            # Business with most recent activity
+            cursor = self.execute_query('''
+                SELECT b.name, MAX(bk.last_used) as last_used
+                FROM businesses b
+                LEFT JOIN business_keywords bk ON b.id = bk.business_id
+                WHERE bk.last_used IS NOT NULL
+                GROUP BY b.id, b.name
+                ORDER BY last_used DESC
+                LIMIT 10
+            ''')
+            stats['businesses_by_recent_activity'] = [dict(zip(['business_name', 'last_used'], row)) 
+                                                     for row in cursor.fetchall()]
+            
+            # Business performance (average usage per keyword)
+            cursor = self.execute_query('''
+                SELECT b.name, 
+                       COUNT(bk.id) as keyword_count,
+                       AVG(bk.usage_count) as avg_usage_per_keyword
+                FROM businesses b
+                LEFT JOIN business_keywords bk ON b.id = bk.business_id
+                GROUP BY b.id, b.name
+                HAVING keyword_count > 0
+                ORDER BY avg_usage_per_keyword DESC
+                LIMIT 10
+            ''')
+            stats['businesses_by_avg_usage'] = [dict(zip(['business_name', 'keyword_count', 'avg_usage_per_keyword'], row)) 
+                                               for row in cursor.fetchall()]
+            
+            return stats
+            
+        except Exception as e:
+            logging.error(f"Failed to get business statistics: {e}")
+            return {}
+
+    def get_performance_metrics(self) -> Dict[str, Any]:
+        """
+        Get performance and efficiency metrics for reporting.
+        :return: Dictionary containing performance metrics
+        """
+        try:
+            metrics = {}
+            
+            # Keyword efficiency (usage vs. total keywords)
+            cursor = self.execute_query("SELECT COUNT(*) FROM business_keywords WHERE usage_count > 0")
+            used_keywords = cursor.fetchone()[0]
+            
+            cursor = self.execute_query("SELECT COUNT(*) FROM business_keywords")
+            total_keywords = cursor.fetchone()[0]
+            
+            if total_keywords > 0:
+                metrics['keyword_efficiency'] = round((used_keywords / total_keywords) * 100, 2)
+            else:
+                metrics['keyword_efficiency'] = 0
+            
+            # Average keywords per business
+            cursor = self.execute_query("SELECT COUNT(*) FROM businesses")
+            total_businesses = cursor.fetchone()[0]
+            
+            if total_businesses > 0:
+                metrics['avg_keywords_per_business'] = round(total_keywords / total_businesses, 2)
+            else:
+                metrics['avg_keywords_per_business'] = 0
+            
+            # Most efficient keywords (high usage relative to age)
+            cursor = self.execute_query('''
+                SELECT bk.keyword, bk.usage_count, b.name as business_name
+                FROM business_keywords bk
+                JOIN businesses b ON bk.business_id = b.id
+                WHERE bk.usage_count > 0
+                ORDER BY bk.usage_count DESC
+                LIMIT 5
+            ''')
+            metrics['most_efficient_keywords'] = [dict(zip(['keyword', 'usage_count', 'business_name'], row)) 
+                                                for row in cursor.fetchall()]
+            
+            return metrics
+            
+        except Exception as e:
+            logging.error(f"Failed to get performance metrics: {e}")
+            return {} 
