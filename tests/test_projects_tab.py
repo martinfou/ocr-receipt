@@ -5,9 +5,9 @@ import pytest
 from PyQt6.QtWidgets import QApplication, QTableWidgetItem, QDialog, QMessageBox
 from PyQt6.QtCore import Qt
 from unittest.mock import Mock, patch, MagicMock
-from ocr_receipt.gui.projects_tab import (
-    ProjectsTab, ProjectsTable, AddProjectDialog, EditProjectDialog
-)
+from ocr_receipt.gui.projects_tab import ProjectsTab
+from ocr_receipt.gui.widgets.projects_table import ProjectsTable
+from ocr_receipt.gui.dialogs.add_project_dialog import AddProjectDialog, EditProjectDialog
 from ocr_receipt.business.project_manager import ProjectManager
 from ocr_receipt.business.database_manager import DatabaseManager
 
