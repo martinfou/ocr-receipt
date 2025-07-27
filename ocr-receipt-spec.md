@@ -1288,6 +1288,13 @@ The application uses YAML configuration files with the following structure:
 - **pytest-cov**: Code coverage reporting
 - **pytest-mock**: Mocking and patching support
 
+### Critical Testing Rules
+- **NO POPUPS IN TESTS**: All tests must be fully automated with NO popups or user input dialogs
+- **MANDATORY MOCKING**: Mock all QMessageBox, QFileDialog, QInputDialog, and any other UI dialogs that require user interaction
+- **PATCH REQUIREMENT**: Use unittest.mock.patch to prevent any dialog from appearing during test execution
+- **BLOCKING ISSUE**: Test failures due to popups are considered blocking issues that must be fixed immediately
+- **AUTOMATION FIRST**: All tests must run without any manual intervention or user input
+
 ## Deployment
 
 ### Development Setup
