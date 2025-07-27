@@ -8,6 +8,9 @@ from PyQt6.QtGui import QIcon
 from ocr_receipt.config import ConfigManager
 from ocr_receipt.parsers.invoice_parser import InvoiceParser, InvoiceParserError
 from pathlib import Path
+import logging
+
+logger = logging.getLogger(__name__)
 
 class SinglePDFTab(QWidget):
     """
@@ -117,7 +120,6 @@ class SinglePDFTab(QWidget):
         left_grid.addWidget(self.pdf_preview.pdf_label, 1, 0)
         project_group = QGroupBox("Project Settings")
         project_layout = QFormLayout(project_group)
-        self.project_name_edit = QLineEdit()
         self.document_type_combo = QComboBox()
         self.document_type_combo.addItems(["Invoice", "Credit Card", "Other"])
         self.interactive_mode_checkbox = QCheckBox("Interactive Mode")
@@ -130,7 +132,11 @@ class SinglePDFTab(QWidget):
         conf_layout = QHBoxLayout()
         conf_layout.addWidget(self.confidence_slider)
         conf_layout.addWidget(self.confidence_label)
-        project_layout.addRow("Project Name:", self.project_name_edit)
+        # Project dropdown
+        from .widgets.editable_combo_box import EditableComboBox
+        self.project_combo = EditableComboBox()
+        project_layout.addRow("Project:", self.project_combo)
+        
         project_layout.addRow("Document Type:", self.document_type_combo)
         project_layout.addRow(self.interactive_mode_checkbox)
         project_layout.addRow("Confidence Threshold:", conf_layout)
@@ -242,13 +248,59 @@ class SinglePDFTab(QWidget):
 
     def _populate_projects_and_categories(self):
         # Get project and category names from managers
-        projects = self.project_manager.list_projects()
-        project_names = [p['name'] for p in projects]
-        self.data_panel.project_combo.set_items(project_names)
+        try:
+            projects = self.project_manager.list_projects()
+            
+            # Defensive check for mock objects or invalid data
+            if not isinstance(projects, list):
+                logger.error(f"Expected list from list_projects(), got {type(projects)}")
+            else:
+                project_names = [p['name'] for p in projects]
+                self.project_combo.set_items(project_names)
+        except Exception as e:
+            logger.error(f"Failed to populate projects: {e}")
 
-        categories = self.category_manager.list_categories()
-        category_names = [c['name'] for c in categories]
-        self.data_panel.category_combo.set_items(category_names)
+        try:
+            categories = self.category_manager.list_categories()
+            
+            # Defensive check for mock objects or invalid data
+            if not isinstance(categories, list):
+                logger.error(f"Expected list from list_categories(), got {type(categories)}")
+            else:
+                category_names = [c['name'] for c in categories]
+                self.data_panel.category_combo.set_items(category_names)
+        except Exception as e:
+            logger.error(f"Failed to populate categories: {e}")
+
+    def refresh_categories(self):
+        """Refresh the category dropdown when categories change."""
+        try:
+            categories = self.category_manager.list_categories()
+            
+            # Defensive check for mock objects or invalid data
+            if not isinstance(categories, list):
+                logger.error(f"Expected list from list_categories(), got {type(categories)}")
+                return
+                
+            category_names = [c['name'] for c in categories]
+            self.data_panel.category_combo.set_items(category_names)
+        except Exception as e:
+            logger.error(f"Failed to refresh categories: {e}")
+
+    def refresh_projects(self):
+        """Refresh the project dropdown when projects change."""
+        try:
+            projects = self.project_manager.list_projects()
+            
+            # Defensive check for mock objects or invalid data
+            if not isinstance(projects, list):
+                logger.error(f"Expected list from list_projects(), got {type(projects)}")
+                return
+                
+            project_names = [p['name'] for p in projects]
+            self.project_combo.set_items(project_names)
+        except Exception as e:
+            logger.error(f"Failed to refresh projects: {e}")
 
     def show_processing_stage(self, stage: str):
         """Show appropriate status for each processing stage."""

@@ -54,9 +54,7 @@ class DataPanel(QWidget):
         invoice_row.addWidget(self.invoice_confirm_btn)
         form_layout.addRow("Invoice Number:", invoice_row)
 
-        # Project and category dropdowns
-        self.project_combo = EditableComboBox()
-        form_layout.addRow("Project:", self.project_combo)
+        # Category dropdown (for assigning categories to invoices)
         self.category_combo = EditableComboBox()
         form_layout.addRow("Category:", self.category_combo)
 

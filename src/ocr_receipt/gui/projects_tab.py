@@ -213,6 +213,7 @@ class ProjectsTable(QTableWidget):
     """Table widget for displaying and managing projects."""
     
     project_selected = pyqtSignal(int)  # Emits project ID when a project is selected
+    project_double_clicked = pyqtSignal(int)  # Emits project ID when a project is double-clicked
     
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
@@ -221,18 +222,16 @@ class ProjectsTable(QTableWidget):
 
     def _setup_ui(self) -> None:
         """Setup the table UI."""
-        self.setColumnCount(3)
+        self.setColumnCount(2)
         self.setHorizontalHeaderLabels([
-            tr("projects_table.id_header"),
             tr("projects_table.name_header"),
             tr("projects_table.description_header")
         ])
         
         # Set column widths
         header = self.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
-        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
         
         # Set selection behavior
         self.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
@@ -247,21 +246,16 @@ class ProjectsTable(QTableWidget):
         self.setRowCount(len(projects))
         
         for row, project in enumerate(projects):
-            # ID column
-            id_item = QTableWidgetItem(str(project['id']))
-            id_item.setFlags(id_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
-            self.setItem(row, 0, id_item)
-            
             # Name column
             name_item = QTableWidgetItem(project['name'])
             name_item.setFlags(name_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
-            self.setItem(row, 1, name_item)
+            self.setItem(row, 0, name_item)
             
             # Description column
             description = project.get('description', '') or ''
             desc_item = QTableWidgetItem(description)
             desc_item.setFlags(desc_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
-            self.setItem(row, 2, desc_item)
+            self.setItem(row, 1, desc_item)
 
     def get_selected_project_id(self) -> Optional[int]:
         """Get the ID of the currently selected project."""
@@ -283,8 +277,22 @@ class ProjectsTable(QTableWidget):
         if project_id is not None:
             self.project_selected.emit(project_id)
 
+    def mouseDoubleClickEvent(self, event) -> None:
+        """Handle double-click events on table rows."""
+        super().mouseDoubleClickEvent(event)
+        
+        # Get the item that was double-clicked
+        item = self.itemAt(event.pos())
+        if item is not None:
+            row = item.row()
+            if row >= 0 and row < len(self.projects_data):
+                project_id = self.projects_data[row]['id']
+                self.project_double_clicked.emit(project_id)
+
 class ProjectsTab(QWidget):
     """Main projects management tab."""
+    
+    projects_changed = pyqtSignal()  # Signal emitted when projects are added, edited, or deleted
     
     def __init__(self, project_manager: ProjectManager, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
@@ -343,6 +351,7 @@ class ProjectsTab(QWidget):
         # Projects table
         self.projects_table = ProjectsTable()
         self.projects_table.project_selected.connect(self._on_project_selected)
+        self.projects_table.project_double_clicked.connect(self._on_project_double_clicked)
         layout.addWidget(self.projects_table)
         
         # Status bar
@@ -354,6 +363,16 @@ class ProjectsTab(QWidget):
         """Load projects from the database."""
         try:
             projects = self.project_manager.list_projects()
+            
+            # Defensive check for mock objects or invalid data
+            if not isinstance(projects, list):
+                error_msg = f"Expected list from list_projects(), got {type(projects)}"
+                logger.error(error_msg)
+                QMessageBox.critical(self, tr("projects_tab.error"), 
+                                   f"Data error: {error_msg}")
+                self.status_label.setText(tr("projects_tab.status_error"))
+                return
+            
             self.projects_table.load_projects(projects)
             self.status_label.setText(tr("projects_tab.status_loaded").format(count=len(projects)))
         except Exception as e:
@@ -373,6 +392,7 @@ class ProjectsTab(QWidget):
                 )
                 self._load_projects()
                 self.status_label.setText(tr("projects_tab.status_added"))
+                self.projects_changed.emit()  # Notify other components
             except ValueError as e:
                 QMessageBox.warning(self, tr("projects_tab.validation_error"), str(e))
             except Exception as e:
@@ -386,22 +406,7 @@ class ProjectsTab(QWidget):
         if not project_data:
             return
         
-        dialog = EditProjectDialog(project_data, self)
-        if dialog.exec() == QDialog.DialogCode.Accepted:
-            try:
-                self.project_manager.update_project(
-                    project_data['id'],
-                    dialog.get_project_name(),
-                    dialog.get_project_description()
-                )
-                self._load_projects()
-                self.status_label.setText(tr("projects_tab.status_updated"))
-            except ValueError as e:
-                QMessageBox.warning(self, tr("projects_tab.validation_error"), str(e))
-            except Exception as e:
-                logger.error(f"Failed to update project: {e}")
-                QMessageBox.critical(self, tr("projects_tab.error"), 
-                                   tr("projects_tab.update_error").format(error=str(e)))
+        self._edit_project_data(project_data)
 
     def _on_delete_project(self) -> None:
         """Handle delete project button click."""
@@ -423,6 +428,7 @@ class ProjectsTab(QWidget):
                 self.project_manager.delete_project(project_data['id'])
                 self._load_projects()
                 self.status_label.setText(tr("projects_tab.status_deleted"))
+                self.projects_changed.emit()  # Notify other components
             except Exception as e:
                 logger.error(f"Failed to delete project: {e}")
                 QMessageBox.critical(self, tr("projects_tab.error"), 
@@ -432,6 +438,40 @@ class ProjectsTab(QWidget):
         """Handle project selection."""
         self.edit_button.setEnabled(True)
         self.delete_button.setEnabled(True)
+
+    def _on_project_double_clicked(self, project_id: int) -> None:
+        """Handle project double-click - open edit dialog."""
+        # Find the project data for the given ID
+        project_data = None
+        for project in self.projects_table.projects_data:
+            if project['id'] == project_id:
+                project_data = project
+                break
+        
+        if project_data:
+            self._edit_project_data(project_data)
+        else:
+            logger.warning(f"Project with ID {project_id} not found for editing")
+
+    def _edit_project_data(self, project_data: Dict[str, Any]) -> None:
+        """Edit a specific project with the given data."""
+        dialog = EditProjectDialog(project_data, self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            try:
+                self.project_manager.update_project(
+                    project_data['id'],
+                    dialog.get_project_name(),
+                    dialog.get_project_description()
+                )
+                self._load_projects()
+                self.status_label.setText(tr("projects_tab.status_updated"))
+                self.projects_changed.emit()  # Notify other components
+            except ValueError as e:
+                QMessageBox.warning(self, tr("projects_tab.validation_error"), str(e))
+            except Exception as e:
+                logger.error(f"Failed to update project: {e}")
+                QMessageBox.critical(self, tr("projects_tab.error"), 
+                                   tr("projects_tab.update_error").format(error=str(e)))
 
     def update_language(self) -> None:
         """Update all text elements when language changes."""

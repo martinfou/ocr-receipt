@@ -4,6 +4,7 @@
   },
   "business_keywords_tab": {
     "title": "Business Keywords",
+    "subtitle": "Manage business keywords and track usage statistics",
     "add_business": "Add Business",
     "edit_keyword": "Edit Keyword",
     "delete_keyword": "Delete Keyword",
@@ -248,5 +249,62 @@
     "reset_error_message": "Failed to reset settings: {error}",
     "language_changed_title": "Language Changed",
     "language_changed_message": "Language changed to {language}. The application will now use this language."
+  },
+  "add_category_dialog": {
+    "title": "Add Category",
+    "header": "Add New Category",
+    "description": "Enter category details below. Category codes are optional but useful for organization.",
+    "name_label": "Category Name:",
+    "name_placeholder": "Enter category name",
+    "code_label": "Category Code:",
+    "code_placeholder": "Enter category code (optional)",
+    "description_label": "Description:",
+    "description_placeholder": "Enter category description (optional)",
+    "validation_error": "Validation Error",
+    "enter_name": "Please enter a category name.",
+    "min_length": "Category name must be at least 2 characters long.",
+    "max_length": "Category name cannot exceed 100 characters."
+  },
+  "edit_category_dialog": {
+    "title": "Edit Category",
+    "header": "Edit Category",
+    "name_label": "Category Name:",
+    "name_placeholder": "Enter category name",
+    "code_label": "Category Code:",
+    "code_placeholder": "Enter category code (optional)",
+    "description_label": "Description:",
+    "description_placeholder": "Enter category description (optional)",
+    "validation_error": "Validation Error",
+    "enter_name": "Please enter a category name.",
+    "min_length": "Category name must be at least 2 characters long.",
+    "max_length": "Category name cannot exceed 100 characters."
+  },
+  "categories_table": {
+    "id_header": "ID",
+    "name_header": "Name",
+    "code_header": "Code",
+    "description_header": "Description"
+  },
+  "categories_tab": {
+    "title": "Categories",
+    "subtitle": "Create and manage categories to organize your invoices",
+    "add_button": "Add Category",
+    "edit_button": "Edit Category",
+    "delete_button": "Delete Category",
+    "refresh_button": "Refresh",
+    "status_ready": "Ready",
+    "status_loaded": "Loaded {count} categories",
+    "status_added": "Category added successfully",
+    "status_updated": "Category updated successfully",
+    "status_deleted": "Category deleted successfully",
+    "status_error": "Error loading categories",
+    "error": "Error",
+    "validation_error": "Validation Error",
+    "load_error": "Failed to load categories: {error}",
+    "add_error": "Failed to add category: {error}",
+    "update_error": "Failed to update category: {error}",
+    "delete_error": "Failed to delete category: {error}",
+    "delete_confirm_title": "Confirm Deletion",
+    "delete_confirm_message": "Are you sure you want to delete category '{category_name}'?"
   }
 } 

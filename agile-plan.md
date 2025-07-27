@@ -451,7 +451,7 @@
   - Create project CRUD operations
   - **Story Points**: 8
 
-- [ ] **T8.2** - Create Categories Tab
+- [x] **T8.2** - Create Categories Tab
   - Implement CategoriesTab class
   - Add category management interface
   - Implement code support
@@ -463,11 +463,6 @@
   - Add AddProjectDialog and AddCategoryDialog
   - **Story Points**: 8
 
-- [ ] **T8.4** - Add hierarchical support
-  - Implement nested project structure
-  - Add category hierarchies
-  - Create tree view components
-  - **Story Points**: 8
 
 - [ ] **T8.5** - Add tab tests
   - GUI tests for projects and categories
@@ -481,6 +476,13 @@
   - Create control enabling/disabling during processing
   - Add comprehensive tests for visual indicators
   - **Story Points**: 5
+
+- [x] **T8.7** - Fix PyQt6 test crashes
+  - Fix QApplication handling in test files
+  - Resolve memory access violations in GUI tests
+  - Update test patterns to use proper pytest-qt fixtures
+  - Fix dialog enum value mocking in tests
+  - **Story Points**: 3
 
 #### Definition of Done
 - [ ] Projects management functional

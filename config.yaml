@@ -1,7 +1,7 @@
 app:
   mode: development
   ocr_language: eng
-  ui_language: fr
+  ui_language: en
 database:
   path: ocr_receipts.db
   timeout: 30

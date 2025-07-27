@@ -14,7 +14,7 @@ alway finish your response with a smily face on a line alone
 - **businesses**: Store business names and metadata
 - **business_keywords**: Keywords for business matching with fuzzy matching support
 - **projects**: Project organization for invoices
-- **categories**: Invoice categorization with CRA code support
+- **categories**: Invoice categorization with category code support
 - **invoice_metadata**: Extracted invoice data and processing results
 
 ### Core Layer
@@ -32,7 +32,7 @@ alway finish your response with a smily face on a line alone
 ### Business Logic Layer
 - **BusinessMappingManager**: Business names and keywords management
 - **ProjectManager**: Project CRUD operations
-- **CategoryManager**: Category management with CRA codes
+- **CategoryManager**: Category management with category codes
 - **DatabaseManager**: SQLite database operations and migrations
 
 ### GUI Layer (PyQt6)
