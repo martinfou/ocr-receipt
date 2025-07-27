@@ -507,7 +507,7 @@
   - Create filename preview
   - **Story Points**: 8
 
-- [ ] **T9.2** - Create Settings Tab
+- [x] **T9.2** - Create Settings Tab
   - Implement SettingsTab class
   - Add configuration options
   - Create settings validation
@@ -517,6 +517,9 @@
   - Create filename generation
   - Add variable substitution
   - Implement filename validation
+  - implement file rename
+  - save the variable into a metadata hidden field in the PDF
+  - when loading a pdf check if it contains hidden variables in metadata and fill out the dropdown and the text field with the information. 
   - **Story Points**: 5
 
 - [ ] **T9.4** - Add backup and restore

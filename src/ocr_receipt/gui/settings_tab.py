@@ -4,11 +4,13 @@ SettingsTab: Application settings and configuration interface.
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, 
     QComboBox, QFormLayout, QGroupBox, QSpinBox, QCheckBox,
-    QLineEdit, QMessageBox, QFrame
+    QLineEdit, QMessageBox, QFrame, QFileDialog
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont
 from typing import Optional, Dict, Any
+from datetime import datetime
+import os
 from ..config import ConfigManager
 from ..utils.translation_helper import tr, set_language, get_language
 import logging
@@ -112,9 +114,27 @@ class SettingsTab(QWidget):
         db_layout = QFormLayout(db_group)
         
         # Database path
+        db_path_layout = QHBoxLayout()
         self.db_path_edit = QLineEdit()
         self.db_path_edit.setReadOnly(True)
-        db_layout.addRow(tr("settings_tab.database_path"), self.db_path_edit)
+        self.db_browse_button = QPushButton(tr("settings_tab.browse_button"))
+        self.db_browse_button.clicked.connect(self._on_browse_database)
+        
+        db_path_layout.addWidget(self.db_path_edit)
+        db_path_layout.addWidget(self.db_browse_button)
+        db_layout.addRow(tr("settings_tab.database_path"), db_path_layout)
+        
+        # Database backup section
+        backup_layout = QHBoxLayout()
+        self.backup_button = QPushButton(tr("settings_tab.backup_database"))
+        self.backup_button.clicked.connect(self._on_backup_database)
+        
+        self.restore_button = QPushButton(tr("settings_tab.restore_database"))
+        self.restore_button.clicked.connect(self._on_restore_database)
+        
+        backup_layout.addWidget(self.backup_button)
+        backup_layout.addWidget(self.restore_button)
+        db_layout.addRow(tr("settings_tab.database_backup"), backup_layout)
         
         layout.addWidget(db_group)
         
@@ -257,6 +277,14 @@ class SettingsTab(QWidget):
 
     def _save_current_settings(self) -> None:
         """Save current UI settings to config manager."""
+        # Validate settings before saving
+        validation_errors = self._validate_settings()
+        if validation_errors:
+            error_message = "\n".join(validation_errors)
+            QMessageBox.critical(self, tr("settings_tab.validation_error_title"), 
+                               tr("settings_tab.validation_error_message").format(error=error_message))
+            raise ValueError(f"Validation failed: {error_message}")
+        
         # GUI settings
         window_width = self.window_width_spin.value()
         window_height = self.window_height_spin.value()
@@ -272,4 +300,119 @@ class SettingsTab(QWidget):
         self.config_manager.set('ocr.max_retries', self.max_retries_spin.value())
         
         # Save config to file
-        self.config_manager.save() 
+        self.config_manager.save()
+    
+    def _validate_settings(self) -> list:
+        """Validate current settings and return list of error messages."""
+        errors = []
+        
+        # Validate window size
+        window_width = self.window_width_spin.value()
+        window_height = self.window_height_spin.value()
+        
+        if window_width < 800 or window_width > 2000:
+            errors.append(tr("settings_tab.validation_window_width"))
+        
+        if window_height < 600 or window_height > 1500:
+            errors.append(tr("settings_tab.validation_window_height"))
+        
+        # Validate aspect ratio (width should be greater than height for typical desktop)
+        if window_width <= window_height:
+            errors.append(tr("settings_tab.validation_aspect_ratio"))
+        
+        # Validate confidence threshold
+        confidence = self.confidence_spin.value()
+        if confidence < 10 or confidence > 100:
+            errors.append(tr("settings_tab.validation_confidence"))
+        
+        # Validate max retries
+        max_retries = self.max_retries_spin.value()
+        if max_retries < 1 or max_retries > 10:
+            errors.append(tr("settings_tab.validation_max_retries"))
+        
+        return errors
+    
+    def _on_browse_database(self) -> None:
+        """Handle browse button click for database path."""
+        current_path = self.db_path_edit.text()
+        
+        # Open file dialog to select database file
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            tr("settings_tab.select_database_title"),
+            current_path,
+            tr("settings_tab.database_file_filter")
+        )
+        
+        if file_path:
+            self.db_path_edit.setText(file_path)
+            # Update the config manager
+            self.config_manager.set('database.path', file_path)
+            self.status_label.setText(tr("settings_tab.database_path_updated"))
+    
+    def _on_backup_database(self) -> None:
+        """Handle backup database button click."""
+        current_db_path = self.db_path_edit.text()
+        
+        if not current_db_path or not os.path.exists(current_db_path):
+            QMessageBox.warning(self, tr("settings_tab.backup_error_title"),
+                              tr("settings_tab.backup_no_database"))
+            return
+        
+        # Open file dialog to select backup location
+        backup_path, _ = QFileDialog.getSaveFileName(
+            self,
+            tr("settings_tab.select_backup_title"),
+            f"{current_db_path}.backup",
+            tr("settings_tab.database_file_filter")
+        )
+        
+        if backup_path:
+            try:
+                import shutil
+                shutil.copy2(current_db_path, backup_path)
+                QMessageBox.information(self, tr("settings_tab.backup_success_title"),
+                                      tr("settings_tab.backup_success_message").format(path=backup_path))
+                self.status_label.setText(tr("settings_tab.backup_created"))
+            except Exception as e:
+                QMessageBox.critical(self, tr("settings_tab.backup_error_title"),
+                                   tr("settings_tab.backup_error_message").format(error=str(e)))
+    
+    def _on_restore_database(self) -> None:
+        """Handle restore database button click."""
+        current_db_path = self.db_path_edit.text()
+        
+        # Open file dialog to select backup file
+        backup_path, _ = QFileDialog.getOpenFileName(
+            self,
+            tr("settings_tab.select_restore_title"),
+            "",
+            tr("settings_tab.database_file_filter")
+        )
+        
+        if backup_path:
+            reply = QMessageBox.question(
+                self,
+                tr("settings_tab.restore_confirm_title"),
+                tr("settings_tab.restore_confirm_message").format(path=backup_path),
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
+            
+            if reply == QMessageBox.StandardButton.Yes:
+                try:
+                    import shutil
+                    # Create a backup of current database before restoring
+                    if current_db_path and os.path.exists(current_db_path):
+                        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                        current_backup = f"{current_db_path}.before_restore_{timestamp}"
+                        shutil.copy2(current_db_path, current_backup)
+                    
+                    # Restore the selected backup
+                    shutil.copy2(backup_path, current_db_path)
+                    QMessageBox.information(self, tr("settings_tab.restore_success_title"),
+                                          tr("settings_tab.restore_success_message"))
+                    self.status_label.setText(tr("settings_tab.database_restored"))
+                except Exception as e:
+                    QMessageBox.critical(self, tr("settings_tab.restore_error_title"),
+                                       tr("settings_tab.restore_error_message").format(error=str(e))) 
