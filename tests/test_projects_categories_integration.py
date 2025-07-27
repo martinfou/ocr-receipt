@@ -11,7 +11,7 @@ This test file covers:
 import pytest
 import tempfile
 import os
-from PyQt6.QtWidgets import QApplication, QMessageBox
+from PyQt6.QtWidgets import QApplication, QMessageBox, QDialogButtonBox, QWidget
 from PyQt6.QtCore import Qt
 from unittest.mock import Mock, patch
 
@@ -199,8 +199,19 @@ class TestProjectsCategoriesIntegration:
         qtbot.mouseClick(tab.edit_button, Qt.MouseButton.LeftButton)
         qtbot.wait(100)
         
-        # Get the edit dialog
-        edit_dialogs = [w for w in QApplication.topLevelWidgets() if isinstance(w, EditProjectDialog)]
+        # The edit dialog should be created by the tab's edit button click
+        # We need to wait for it to be created and then find it
+        qtbot.wait(100)
+        
+        # Find the edit dialog among all widgets
+        edit_dialogs = []
+        def find_edit_dialogs(widget):
+            if isinstance(widget, EditProjectDialog):
+                edit_dialogs.append(widget)
+            for child in widget.findChildren(QWidget):
+                find_edit_dialogs(child)
+        
+        find_edit_dialogs(QApplication.instance())
         assert len(edit_dialogs) == 1
         dialog = edit_dialogs[0]
         
@@ -245,8 +256,19 @@ class TestProjectsCategoriesIntegration:
         qtbot.mouseClick(tab.edit_button, Qt.MouseButton.LeftButton)
         qtbot.wait(100)
         
-        # Get the edit dialog
-        edit_dialogs = [w for w in QApplication.topLevelWidgets() if isinstance(w, EditCategoryDialog)]
+        # The edit dialog should be created by the tab's edit button click
+        # We need to wait for it to be created and then find it
+        qtbot.wait(100)
+        
+        # Find the edit dialog among all widgets
+        edit_dialogs = []
+        def find_edit_dialogs(widget):
+            if isinstance(widget, EditCategoryDialog):
+                edit_dialogs.append(widget)
+            for child in widget.findChildren(QWidget):
+                find_edit_dialogs(child)
+        
+        find_edit_dialogs(QApplication.instance())
         assert len(edit_dialogs) == 1
         dialog = edit_dialogs[0]
         
