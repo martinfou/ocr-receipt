@@ -84,9 +84,9 @@ class TestProjectsCategoriesIntegration:
         qtbot.wait(100)
         
         # Accept the dialog
-        qtbot.mouseClick(dialog.findChild(dialog.findChild, "QDialogButtonBox").button(
-            dialog.findChild(dialog.findChild, "QDialogButtonBox").StandardButton.Ok), 
-            Qt.MouseButton.LeftButton)
+        button_box = dialog.findChild(QDialogButtonBox)
+        ok_button = button_box.button(QDialogButtonBox.StandardButton.Ok)
+        qtbot.mouseClick(ok_button, Qt.MouseButton.LeftButton)
         qtbot.wait(100)
         
         # Verify dialog is closed and accepted
@@ -138,9 +138,9 @@ class TestProjectsCategoriesIntegration:
         qtbot.wait(100)
         
         # Accept the dialog
-        qtbot.mouseClick(dialog.findChild(dialog.findChild, "QDialogButtonBox").button(
-            dialog.findChild(dialog.findChild, "QDialogButtonBox").StandardButton.Ok), 
-            Qt.MouseButton.LeftButton)
+        button_box = dialog.findChild(QDialogButtonBox)
+        ok_button = button_box.button(QDialogButtonBox.StandardButton.Ok)
+        qtbot.mouseClick(ok_button, Qt.MouseButton.LeftButton)
         qtbot.wait(100)
         
         # Verify dialog is closed and accepted
@@ -212,13 +212,13 @@ class TestProjectsCategoriesIntegration:
         qtbot.wait(100)
         
         # Accept the dialog
-        qtbot.mouseClick(dialog.findChild(dialog.findChild, "QDialogButtonBox").button(
-            dialog.findChild(dialog.findChild, "QDialogButtonBox").StandardButton.Ok), 
-            Qt.MouseButton.LeftButton)
+        button_box = dialog.findChild(QDialogButtonBox)
+        ok_button = button_box.button(QDialogButtonBox.StandardButton.Ok)
+        qtbot.mouseClick(ok_button, Qt.MouseButton.LeftButton)
         qtbot.wait(100)
         
         # Verify the project was updated
-        updated_project = project_manager.get_project(project_id)
+        updated_project = project_manager.get_project_by_id(project_id)
         assert updated_project['name'] == "Updated Project"
         assert updated_project['description'] == "Updated description"
     
@@ -260,13 +260,13 @@ class TestProjectsCategoriesIntegration:
         qtbot.wait(100)
         
         # Accept the dialog
-        qtbot.mouseClick(dialog.findChild(dialog.findChild, "QDialogButtonBox").button(
-            dialog.findChild(dialog.findChild, "QDialogButtonBox").StandardButton.Ok), 
-            Qt.MouseButton.LeftButton)
+        button_box = dialog.findChild(QDialogButtonBox)
+        ok_button = button_box.button(QDialogButtonBox.StandardButton.Ok)
+        qtbot.mouseClick(ok_button, Qt.MouseButton.LeftButton)
         qtbot.wait(100)
         
         # Verify the category was updated
-        updated_category = category_manager.get_category(category_id)
+        updated_category = category_manager.get_category_by_id(category_id)
         assert updated_category['name'] == "Updated Category"
         assert updated_category['category_code'] == "UC"
         assert updated_category['description'] == "Updated description"
@@ -303,8 +303,7 @@ class TestProjectsCategoriesIntegration:
         assert tab.projects_table.rowCount() == initial_count - 1
         
         # Verify project no longer exists in database
-        with pytest.raises(ValueError):
-            project_manager.get_project(project_id)
+        assert project_manager.get_project_by_id(project_id) is None
     
     def test_category_delete_workflow(self, categories_tab, qtbot):
         """Test complete workflow of deleting a category through the tab."""
@@ -338,8 +337,7 @@ class TestProjectsCategoriesIntegration:
         assert tab.categories_table.rowCount() == initial_count - 1
         
         # Verify category no longer exists in database
-        with pytest.raises(ValueError):
-            category_manager.get_category(category_id)
+        assert category_manager.get_category_by_id(category_id) is None
     
     def test_table_selection_signals(self, projects_tab, categories_tab, qtbot):
         """Test that table selection signals work correctly."""
