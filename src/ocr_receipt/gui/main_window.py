@@ -4,6 +4,7 @@ from ocr_receipt.config import ConfigManager
 from .single_pdf_tab import SinglePDFTab
 from .business_keywords_tab import BusinessKeywordsTab
 from .projects_tab import ProjectsTab
+from .categories_tab import CategoriesTab
 from .settings_tab import SettingsTab
 from ocr_receipt.business.database_manager import DatabaseManager
 from ocr_receipt.business.business_mapping_manager import BusinessMappingManager
@@ -56,9 +57,12 @@ class OCRMainWindow(QMainWindow):
         self.tab_widget.addTab(self.business_keywords_tab, tr("business_keywords_tab.title"))
         
         self.projects_tab = ProjectsTab(self.project_manager)
+        self.projects_tab.projects_changed.connect(self._on_projects_changed)
         self.tab_widget.addTab(self.projects_tab, tr("projects_tab.title"))
         
-        self._add_tab("Categories", "Categories Tab")
+        self.categories_tab = CategoriesTab(self.category_manager)
+        self.categories_tab.categories_changed.connect(self._on_categories_changed)
+        self.tab_widget.addTab(self.categories_tab, tr("categories_tab.title"))
         self._add_tab("File Naming", "File Naming Tab")
         
         # Create settings tab with language change signal connection
@@ -81,6 +85,7 @@ class OCRMainWindow(QMainWindow):
         self.tab_widget.setTabText(0, tr("single_pdf_tab.title"))
         self.tab_widget.setTabText(1, tr("business_keywords_tab.title"))
         self.tab_widget.setTabText(2, tr("projects_tab.title"))
+        self.tab_widget.setTabText(3, tr("categories_tab.title"))
         self.tab_widget.setTabText(5, tr("settings_tab.title"))
         
         # Update ProjectsTab button texts
@@ -90,6 +95,22 @@ class OCRMainWindow(QMainWindow):
         # Update BusinessKeywordsTab button texts
         if hasattr(self, 'business_keywords_tab'):
             self.business_keywords_tab.update_language()
+        
+        # Update CategoriesTab button texts
+        if hasattr(self, 'categories_tab'):
+            self.categories_tab.update_language()
+
+    def _on_categories_changed(self) -> None:
+        """Handle category changes from CategoriesTab."""
+        # Update Single PDF tab category dropdown
+        if hasattr(self, 'single_pdf_tab'):
+            self.single_pdf_tab.refresh_categories()
+
+    def _on_projects_changed(self) -> None:
+        """Handle project changes from ProjectsTab."""
+        # Update Single PDF tab project dropdown
+        if hasattr(self, 'single_pdf_tab'):
+            self.single_pdf_tab.refresh_projects()
 
 if __name__ == "__main__":
     import sys

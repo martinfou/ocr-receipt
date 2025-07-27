@@ -1,11 +1,15 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QMessageBox, QDialog, QSplitter, QTabWidget
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QMessageBox, QDialog, QSplitter, QTabWidget, QFrame
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QFont
 from ..business.business_mapping_manager import BusinessMappingManager
 from .dialogs.add_business_dialog import AddBusinessDialog
 from .dialogs.edit_keyword_dialog import EditKeywordDialog
 from .widgets.keywords_table import KeywordsTable
 from .widgets.statistics_panel import StatisticsPanel
 from ..utils.translation_helper import tr
+import logging
+
+logger = logging.getLogger(__name__)
 
 class BusinessKeywordsTab(QWidget):
     """
@@ -21,6 +25,26 @@ class BusinessKeywordsTab(QWidget):
 
     def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(10)
+
+        # Header section
+        header_frame = QFrame()
+        header_frame.setFrameStyle(QFrame.Shape.StyledPanel)
+        header_frame.setMaximumHeight(60)  # Constrain header height to match other tabs
+        header_layout = QVBoxLayout(header_frame)
+        
+        title_label = QLabel(tr("business_keywords_tab.title"))
+        title_label.setObjectName("title_label")
+        title_label.setFont(QFont("Arial", 16, QFont.Weight.Bold))
+        header_layout.addWidget(title_label)
+        
+        subtitle_label = QLabel(tr("business_keywords_tab.subtitle"))
+        subtitle_label.setObjectName("subtitle_label")
+        subtitle_label.setStyleSheet("color: #666;")
+        header_layout.addWidget(subtitle_label)
+        
+        layout.addWidget(header_frame)
 
         # Toolbar
         toolbar = QHBoxLayout()
@@ -217,6 +241,12 @@ class BusinessKeywordsTab(QWidget):
             print(f"Error loading comprehensive statistics: {e}")
 
     def _update_statistics(self, keywords) -> None:
+        # Defensive check for mock objects or invalid data
+        if not isinstance(keywords, list):
+            logger.error(f"Expected list for keywords, got {type(keywords)}")
+            self.stats_label.setText("Error: Invalid keyword data")
+            return
+            
         total_keywords = len(keywords)
         unique_businesses = len(set(k['business_name'] for k in keywords if 'business_name' in k))
         
@@ -242,6 +272,15 @@ class BusinessKeywordsTab(QWidget):
         self.delete_button.setText(tr("business_keywords_tab.delete_keyword"))
         self.refresh_button.setText(tr("business_keywords_tab.refresh"))
         self.show_stats_button.setText(tr("business_keywords_tab.show_statistics"))
+        
+        # Update title and subtitle
+        title_label = self.findChild(QLabel, "title_label")
+        if title_label:
+            title_label.setText(tr("business_keywords_tab.title"))
+        
+        subtitle_label = self.findChild(QLabel, "subtitle_label")
+        if subtitle_label:
+            subtitle_label.setText(tr("business_keywords_tab.subtitle"))
         
         # Update statistics if they exist
         if hasattr(self, 'stats_label') and self.stats_label.text():

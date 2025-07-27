@@ -42,8 +42,7 @@ class KeywordsTable(QTableWidget):
         # Configure table behavior
         self.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        self.setSelectionMode(QTableWidget.SelectionMode.ExtendedSelection)
-        self.setAlternatingRowColors(True)
+        self.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
         self.verticalHeader().setVisible(False)
         self.setSortingEnabled(True)
         

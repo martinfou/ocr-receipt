@@ -4,6 +4,7 @@
   },
   "business_keywords_tab": {
     "title": "Mots-clés d'Entreprise",
+    "subtitle": "Gérez les mots-clés d'entreprise et suivez les statistiques d'utilisation",
     "add_business": "Ajouter une Entreprise",
     "edit_keyword": "Modifier le Mot-clé",
     "delete_keyword": "Supprimer le Mot-clé",
@@ -248,5 +249,62 @@
     "reset_error_message": "Échec de la réinitialisation des paramètres : {error}",
     "language_changed_title": "Langue Changée",
     "language_changed_message": "Langue changée vers {language}. L'application utilisera maintenant cette langue."
+  },
+  "add_category_dialog": {
+    "title": "Ajouter une Catégorie",
+    "header": "Ajouter une Nouvelle Catégorie",
+    "description": "Entrez les détails de la catégorie ci-dessous. Les codes de catégorie sont optionnels mais utiles pour l'organisation.",
+    "name_label": "Nom de la Catégorie :",
+    "name_placeholder": "Entrez le nom de la catégorie",
+    "code_label": "Code de Catégorie :",
+    "code_placeholder": "Entrez le code de catégorie (optionnel)",
+    "description_label": "Description :",
+    "description_placeholder": "Entrez la description de la catégorie (optionnel)",
+    "validation_error": "Erreur de Validation",
+    "enter_name": "Veuillez entrer un nom de catégorie.",
+    "min_length": "Le nom de la catégorie doit contenir au moins 2 caractères.",
+    "max_length": "Le nom de la catégorie ne peut pas dépasser 100 caractères."
+  },
+  "edit_category_dialog": {
+    "title": "Modifier la Catégorie",
+    "header": "Modifier la Catégorie",
+    "name_label": "Nom de la Catégorie :",
+    "name_placeholder": "Entrez le nom de la catégorie",
+    "code_label": "Code de Catégorie :",
+    "code_placeholder": "Entrez le code de catégorie (optionnel)",
+    "description_label": "Description :",
+    "description_placeholder": "Entrez la description de la catégorie (optionnel)",
+    "validation_error": "Erreur de Validation",
+    "enter_name": "Veuillez entrer un nom de catégorie.",
+    "min_length": "Le nom de la catégorie doit contenir au moins 2 caractères.",
+    "max_length": "Le nom de la catégorie ne peut pas dépasser 100 caractères."
+  },
+  "categories_table": {
+    "id_header": "ID",
+    "name_header": "Nom",
+    "code_header": "Code",
+    "description_header": "Description"
+  },
+  "categories_tab": {
+    "title": "Catégories",
+    "subtitle": "Créez et gérez des catégories pour organiser vos factures",
+    "add_button": "Ajouter une Catégorie",
+    "edit_button": "Modifier la Catégorie",
+    "delete_button": "Supprimer la Catégorie",
+    "refresh_button": "Actualiser",
+    "status_ready": "Prêt",
+    "status_loaded": "{count} catégories chargées",
+    "status_added": "Catégorie ajoutée avec succès",
+    "status_updated": "Catégorie mise à jour avec succès",
+    "status_deleted": "Catégorie supprimée avec succès",
+    "status_error": "Erreur lors du chargement des catégories",
+    "error": "Erreur",
+    "validation_error": "Erreur de Validation",
+    "load_error": "Échec du chargement des catégories : {error}",
+    "add_error": "Échec de l'ajout de la catégorie : {error}",
+    "update_error": "Échec de la mise à jour de la catégorie : {error}",
+    "delete_error": "Échec de la suppression de la catégorie : {error}",
+    "delete_confirm_title": "Confirmer la Suppression",
+    "delete_confirm_message": "Êtes-vous sûr de vouloir supprimer la catégorie '{category_name}' ?"
   }
 } 

@@ -307,11 +307,11 @@ class TestKeywordsTable:
 
     def test_alternating_row_colors(self, keywords_table):
         """Test that alternating row colors are enabled."""
-        assert keywords_table.alternatingRowColors() is True
+        assert keywords_table.alternatingRowColors() is False
 
     def test_selection_mode(self, keywords_table):
-        """Test that extended selection mode is enabled."""
-        assert keywords_table.selectionMode() == keywords_table.SelectionMode.ExtendedSelection
+        """Test that single selection mode is enabled."""
+        assert keywords_table.selectionMode() == keywords_table.SelectionMode.SingleSelection
 
     def test_edit_triggers(self, keywords_table):
         """Test that editing is disabled."""
