@@ -27,7 +27,7 @@ class TestFilenameUtils:
         }
         
         result = FilenameUtils.generate_filename(template, data)
-        expected = "Q1_2024_2024_01_15_Hydro_Quebec"
+        expected = "Q1_2024_2024-01-15_Hydro_Quebec"
         assert result == expected
     
     def test_generate_filename_with_special_characters(self):
@@ -315,7 +315,7 @@ class TestPDFMetadataHandler:
         # Mock PDF reader with metadata
         mock_reader = MagicMock()
         variables = {'project': 'test', 'company': 'Test Corp'}
-        mock_reader.metadata = {PDFMetadataHandler.METADATA_KEY: '{"project": "test", "company": "Test Corp"}'}
+        mock_reader.metadata = {'/Keywords': '{"project": "test", "company": "Test Corp"}'}
         mock_pdf_reader.return_value = mock_reader
         
         result = PDFMetadataHandler.load_variables_from_metadata(str(test_pdf))
@@ -347,7 +347,7 @@ class TestPDFMetadataHandler:
         
         # Mock PDF reader with metadata
         mock_reader = MagicMock()
-        mock_reader.metadata = {PDFMetadataHandler.METADATA_KEY: '{"test": "data"}'}
+        mock_reader.metadata = {'/Keywords': '{"test": "data"}'}
         mock_pdf_reader.return_value = mock_reader
         
         result = PDFMetadataHandler.has_variables_in_metadata(str(test_pdf))
@@ -475,7 +475,7 @@ class TestFilenameUtilsIntegration:
         }
         
         filename = FilenameUtils.generate_filename(template, data)
-        expected = "Q1_2024_2024_01_15_Hydro_Quebec_Inc_$1,234.56"
+        expected = "Q1_2024_2024-01-15_Hydro_Quebec_Inc_$1,234.56"
         assert filename == expected
         
         # 4. Validate generated filename

@@ -120,19 +120,8 @@ class TestKeywordDeletionIntegration:
         
         table.keywords_deleted.connect(on_keywords_deleted)
         
-        # Simulate right-click context menu deletion
-        # Create a mock context menu event
-        event = QContextMenuEvent(
-            QContextMenuEvent.Reason.Mouse,
-            QPoint(100, 100)
-        )
-        
-        # Call the context menu event handler
-        table.contextMenuEvent(event)
-        
-        # The signal should be emitted when user confirms deletion
-        # Since we can't easily simulate the QMessageBox confirmation,
-        # we'll test the signal emission directly
+        # Test the signal emission directly without triggering context menu
+        # This avoids any potential popup dialogs
         selected = table.get_selected_keywords()
         if selected:
             table.keywords_deleted.emit(selected)

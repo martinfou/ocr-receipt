@@ -15,17 +15,7 @@ file_naming:
       active: true
       description: Standard template with project, date, company, and total
       name: Default Template
-      template: '{project}_{documentType}_{date}__{category}_{company}_${total}'
-    facture:
-      active: false
-      description: null
-      name: facture
-      template: '{project}_{documentType}_{date}_{company}_{category}_${total}'
-    testtemplate:
-      active: false
-      description: null
-      name: testtemplate
-      template: '{project}'
+      template: '{project}_{documentType}_{date}_{company}_{total}'
 gui:
   auto_save: true
   show_preview: true

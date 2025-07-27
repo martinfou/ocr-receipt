@@ -72,12 +72,12 @@ class DataPanel(QWidget):
         self.invoice_number_conf = QLabel()
         self.invoice_number_conf.setMinimumWidth(50)  # Fixed width for confidence label
         self.invoice_number_conf.setMaximumWidth(50)
-        self.invoice_confirm_btn = QPushButton("✓")
-        self.invoice_confirm_btn.setFixedSize(30, 30)  # Square button
+        self.invoice_number_confirm_btn = QPushButton("✓")
+        self.invoice_number_confirm_btn.setFixedSize(30, 30)  # Square button
         invoice_row = QHBoxLayout()
         invoice_row.addWidget(self.invoice_number_edit)
         invoice_row.addWidget(self.invoice_number_conf)
-        invoice_row.addWidget(self.invoice_confirm_btn)
+        invoice_row.addWidget(self.invoice_number_confirm_btn)
         form_layout.addRow("Invoice Number:", invoice_row)
 
         # Check number field

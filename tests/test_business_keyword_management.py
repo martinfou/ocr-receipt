@@ -111,6 +111,10 @@ class TestBusinessKeywordManagement:
     
     def test_add_keyword_dialog_creation(self, app):
         """Test creating the add keyword dialog."""
+        # Set language to English for consistent test results
+        from ocr_receipt.utils.translation_helper import set_language
+        set_language('en')
+        
         business_names = ["Business 1", "Business 2", "Business 3"]
         dialog = AddKeywordDialog(business_names)
         
