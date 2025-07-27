@@ -115,11 +115,11 @@ class SinglePDFTab(QWidget):
         self.save_button = QPushButton("💾 Save")
         self.rename_button = QPushButton("🖉 Rename File")
         self.browse_rename_button = QPushButton("📁 Browse")
-        self.export_button = QPushButton("📊 Export")
+        self.raw_data_button = QPushButton("📄 Raw Data")
         actions.addWidget(self.save_button)
         actions.addWidget(self.rename_button)
         actions.addWidget(self.browse_rename_button)
-        actions.addWidget(self.export_button)
+        actions.addWidget(self.raw_data_button)
         actions_widget = QWidget()
         actions_widget.setLayout(actions)
         right_grid.addWidget(actions_widget, 0, 0)
@@ -188,6 +188,8 @@ class SinglePDFTab(QWidget):
         self.browse_button.clicked.connect(self._on_browse_file)
         self.reprocess_button.clicked.connect(self._on_reprocess_file)
         self.browse_rename_button.clicked.connect(self._on_browse_rename)
+        self.rename_button.clicked.connect(self._on_rename_file)
+        self.raw_data_button.clicked.connect(self._on_raw_data)
         self.confidence_slider.valueChanged.connect(self._on_confidence_changed)
         self.template_combo.currentTextChanged.connect(self._on_template_changed)
         self.document_type_combo.currentTextChanged.connect(self._on_template_changed)
@@ -329,63 +331,126 @@ class SinglePDFTab(QWidget):
             logger.error(f"Failed to load embedded variables: {e}")
 
     def _on_browse_rename(self) -> None:
-        """Handle browse for rename functionality."""
+        """Handle browse for selecting a new PDF file."""
         from PyQt6.QtWidgets import QFileDialog, QMessageBox
         
-        # Get current file path
+        # Open file dialog to select a PDF file
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, 
+            "Select PDF File", 
+            "", 
+            "PDF Files (*.pdf)"
+        )
+        
+        if file_path:
+            # Update the file path in the UI
+            self.file_path_edit.setText(file_path)
+            # Process the new PDF file
+            self._process_pdf_file(file_path)
+
+    def _on_rename_file(self) -> None:
+        """Handle the rename file action."""
+        from PyQt6.QtWidgets import QFileDialog, QMessageBox
+        from PyQt6.QtCore import QTimer
+        
         current_file_path = self.file_path_edit.text()
         if not current_file_path:
-            QMessageBox.warning(self, "No PDF File Selected", "Please select a PDF file first to browse for rename.")
+            QMessageBox.warning(self, "No PDF File Selected", "Please select a PDF file to rename.")
             return
         
-        # Generate new filename based on current template and data
+        new_file_name, _ = QFileDialog.getSaveFileName(
+            self,
+            "Rename PDF File",
+            current_file_path,
+            "PDF Files (*.pdf)"
+        )
+        
+        if new_file_name:
+            try:
+                # Ensure the new path is a PDF file
+                if not new_file_name.lower().endswith('.pdf'):
+                    new_file_name += '.pdf'
+                
+                # Check if the new path is different from the current one
+                if Path(new_file_name).resolve() == Path(current_file_path).resolve():
+                    QMessageBox.information(self, "No Change", "The new file name is the same as the current file name.")
+                    return
+                
+                # Rename the file
+                Path(current_file_path).rename(new_file_name)
+                
+                # Update the file path in the UI
+                self.file_path_edit.setText(new_file_name)
+                
+                # Re-process the file with the new path
+                self._process_pdf_file(new_file_name)
+                
+                QMessageBox.information(self, "File Renamed", f"File '{current_file_path}' renamed to '{new_file_name}'.")
+                
+            except FileNotFoundError:
+                QMessageBox.warning(self, "File Not Found", f"The file '{current_file_path}' was not found.")
+            except Exception as e:
+                QMessageBox.critical(self, "Error Renaming File", f"Failed to rename file: {e}")
+
+    def _on_raw_data(self) -> None:
+        """Display raw extracted text from the PDF."""
+        from PyQt6.QtWidgets import QDialog, QVBoxLayout, QTextEdit, QPushButton, QHBoxLayout, QLabel
+        
+        # Get current file path
+        file_path = self.file_path_edit.text()
+        if not file_path:
+            QMessageBox.warning(self, "No PDF File Selected", "Please select a PDF file first to view raw data.")
+            return
+        
         try:
-            template_data = self.templates.get(self.active_template_id, {})
-            template = template_data.get('template', '')
+            # Extract text from PDF using OCR engine
+            from ocr_receipt.core.ocr_engine import OCREngine
+            from ocr_receipt.core.text_extractor import TextExtractor
             
-            if not template:
-                QMessageBox.warning(self, "No Template", "Please select a template first.")
+            # Create OCR engine and text extractor
+            config = ConfigManager()._config
+            ocr_engine = OCREngine(config)
+            text_extractor = TextExtractor(ocr_engine)
+            
+            # Extract text from PDF
+            extracted_text = text_extractor.extract_text_from_pdf(file_path)
+            
+            if not extracted_text:
+                QMessageBox.information(self, "No Text Found", "No text could be extracted from the PDF.")
                 return
             
-            # Get current data from the form
-            data = {
-                'project': self.project_combo.currentText() or 'Q1_2024_Invoices',
-                'documentType': self.document_type_combo.currentText().lower() or 'invoice',
-                'date': self.data_panel.date_edit.text() if hasattr(self.data_panel, 'date_edit') else '2024-01-15',
-                'company': self.data_panel.company_edit.text() if hasattr(self.data_panel, 'company_edit') else 'Hydro Quebec Inc',
-                'total': self.data_panel.total_edit.text() if hasattr(self.data_panel, 'total_edit') else '1234.56',
-                'invoiceNumber': self.data_panel.invoice_number_edit.text() if hasattr(self.data_panel, 'invoice_number_edit') else 'INV-2024-001',
-                'category': self.data_panel.category_combo.currentText() if hasattr(self.data_panel, 'category_combo') else 'Utilities',
-                'categoryCode': 'UTIL'  # Default category code
-            }
+            # Create dialog to display raw text
+            dialog = QDialog(self)
+            dialog.setWindowTitle("Raw Extracted Text")
+            dialog.setMinimumSize(800, 600)
             
-            # Generate new filename
-            new_filename = self._generate_filename(template, data)
+            layout = QVBoxLayout(dialog)
             
-            # Open file dialog to select new location
-            new_path, _ = QFileDialog.getSaveFileName(
-                self, 
-                "Save Renamed File", 
-                f"{new_filename}.pdf", 
-                "PDF Files (*.pdf)"
-            )
+            # Add header
+            header_label = QLabel(f"Raw extracted text from: {Path(file_path).name}")
+            header_label.setStyleSheet("font-weight: bold; font-size: 14px; margin-bottom: 10px;")
+            layout.addWidget(header_label)
             
-            if new_path:
-                # Perform the rename
-                from ocr_receipt.utils.filename_utils import FilenameUtils
-                try:
-                    new_file_path = FilenameUtils.rename_file(current_file_path, new_filename, str(Path(new_path).parent))
-                    QMessageBox.information(self, "File Renamed", f"File successfully renamed to:\n{Path(new_file_path).name}")
-                    
-                    # Update the file path in the UI
-                    self.file_path_edit.setText(new_file_path)
-                    
-                except Exception as e:
-                    QMessageBox.critical(self, "Rename Error", f"Failed to rename file: {e}")
-                    
+            # Add text display
+            text_edit = QTextEdit()
+            text_edit.setPlainText(extracted_text)
+            text_edit.setReadOnly(True)
+            layout.addWidget(text_edit)
+            
+            # Add close button
+            button_layout = QHBoxLayout()
+            close_button = QPushButton("Close")
+            close_button.clicked.connect(dialog.accept)
+            button_layout.addStretch()
+            button_layout.addWidget(close_button)
+            layout.addLayout(button_layout)
+            
+            # Show dialog
+            dialog.exec()
+            
         except Exception as e:
-            logger.error(f"Error in browse rename: {e}")
-            QMessageBox.critical(self, "Error", f"An unexpected error occurred: {e}")
+            logger.error(f"Error displaying raw data: {e}")
+            QMessageBox.critical(self, "Error", f"Failed to extract text from PDF: {e}")
 
     def _on_confidence_changed(self, value: int) -> None:
         self.confidence_label.setText(f"{value}%")
@@ -495,7 +560,7 @@ class SinglePDFTab(QWidget):
         self.reprocess_button.setEnabled(False)
         self.save_button.setEnabled(False)
         self.rename_button.setEnabled(False)
-        self.export_button.setEnabled(False)
+        self.raw_data_button.setEnabled(False)
 
     def _enable_controls_after_processing(self):
         """Re-enable controls after processing."""
@@ -503,7 +568,7 @@ class SinglePDFTab(QWidget):
         self.reprocess_button.setEnabled(True)
         self.save_button.setEnabled(True)
         self.rename_button.setEnabled(True)
-        self.export_button.setEnabled(True)
+        self.raw_data_button.setEnabled(True)
 
     def process_pdf_with_feedback(self, file_path: str):
         """Process PDF with visual feedback at each stage."""
