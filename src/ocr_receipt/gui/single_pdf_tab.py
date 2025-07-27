@@ -114,9 +114,11 @@ class SinglePDFTab(QWidget):
         actions = QHBoxLayout()
         self.save_button = QPushButton("💾 Save")
         self.rename_button = QPushButton("🖉 Rename File")
+        self.browse_rename_button = QPushButton("📁 Browse")
         self.export_button = QPushButton("📊 Export")
         actions.addWidget(self.save_button)
         actions.addWidget(self.rename_button)
+        actions.addWidget(self.browse_rename_button)
         actions.addWidget(self.export_button)
         actions_widget = QWidget()
         actions_widget.setLayout(actions)
@@ -172,15 +174,6 @@ class SinglePDFTab(QWidget):
         self.filename_preview = QLabel("Q1_2024_invoice_2024-01-15_hydro_quebec_$1234.56.pdf")
         filename_layout.addWidget(self.filename_preview)
         
-        # Add save to PDF metadata button
-        save_metadata_layout = QHBoxLayout()
-        self.save_metadata_button = QPushButton("💾 Save Variables to PDF")
-        self.save_metadata_button.setToolTip("Save current form variables to PDF metadata for future use")
-        self.save_metadata_button.clicked.connect(self._on_save_metadata)
-        save_metadata_layout.addWidget(self.save_metadata_button)
-        save_metadata_layout.addStretch()
-        filename_layout.addLayout(save_metadata_layout)
-        
         right_grid.addWidget(filename_group, 3, 0)
 
         right_grid.setRowStretch(4, 1)
@@ -194,10 +187,23 @@ class SinglePDFTab(QWidget):
     def _setup_connections(self) -> None:
         self.browse_button.clicked.connect(self._on_browse_file)
         self.reprocess_button.clicked.connect(self._on_reprocess_file)
+        self.browse_rename_button.clicked.connect(self._on_browse_rename)
         self.confidence_slider.valueChanged.connect(self._on_confidence_changed)
         self.template_combo.currentTextChanged.connect(self._on_template_changed)
         self.document_type_combo.currentTextChanged.connect(self._on_template_changed)
         self.project_combo.currentTextChanged.connect(self._on_template_changed)
+        
+        # Connect data panel fields for live filename preview updates
+        if hasattr(self.data_panel, 'company_edit'):
+            self.data_panel.company_edit.textChanged.connect(self._on_template_changed)
+        if hasattr(self.data_panel, 'total_edit'):
+            self.data_panel.total_edit.textChanged.connect(self._on_template_changed)
+        if hasattr(self.data_panel, 'date_edit'):
+            self.data_panel.date_edit.textChanged.connect(self._on_template_changed)
+        if hasattr(self.data_panel, 'invoice_number_edit'):
+            self.data_panel.invoice_number_edit.textChanged.connect(self._on_template_changed)
+        if hasattr(self.data_panel, 'category_combo'):
+            self.data_panel.category_combo.currentTextChanged.connect(self._on_template_changed)
         # TODO: Connect other signals for interactive features
 
     def _on_reprocess_file(self) -> None:
@@ -322,50 +328,64 @@ class SinglePDFTab(QWidget):
         except Exception as e:
             logger.error(f"Failed to load embedded variables: {e}")
 
-    def save_variables_to_pdf(self, file_path: str) -> bool:
-        """
-        Save current form variables to PDF metadata.
+    def _on_browse_rename(self) -> None:
+        """Handle browse for rename functionality."""
+        from PyQt6.QtWidgets import QFileDialog, QMessageBox
         
-        Args:
-            file_path: Path to the PDF file
-            
-        Returns:
-            True if successful, False otherwise
-        """
-        from ocr_receipt.utils.filename_utils import PDFMetadataHandler
+        # Get current file path
+        current_file_path = self.file_path_edit.text()
+        if not current_file_path:
+            QMessageBox.warning(self, "No PDF File Selected", "Please select a PDF file first to browse for rename.")
+            return
         
+        # Generate new filename based on current template and data
         try:
-            # Collect current form data
-            variables = {
-                'project': self.project_combo.currentText(),
-                'documentType': self.document_type_combo.currentText().lower(),
-                'category': self.data_panel.category_combo.currentText(),
-                'company': self.data_panel.company_edit.text(),
-                'total': self.data_panel.total_edit.text(),
-                'date': self.data_panel.date_edit.text(),
-                'invoiceNumber': self.data_panel.invoice_number_edit.text()
+            template_data = self.templates.get(self.active_template_id, {})
+            template = template_data.get('template', '')
+            
+            if not template:
+                QMessageBox.warning(self, "No Template", "Please select a template first.")
+                return
+            
+            # Get current data from the form
+            data = {
+                'project': self.project_combo.currentText() or 'Q1_2024_Invoices',
+                'documentType': self.document_type_combo.currentText().lower() or 'invoice',
+                'date': self.data_panel.date_edit.text() if hasattr(self.data_panel, 'date_edit') else '2024-01-15',
+                'company': self.data_panel.company_edit.text() if hasattr(self.data_panel, 'company_edit') else 'Hydro Quebec Inc',
+                'total': self.data_panel.total_edit.text() if hasattr(self.data_panel, 'total_edit') else '1234.56',
+                'invoiceNumber': self.data_panel.invoice_number_edit.text() if hasattr(self.data_panel, 'invoice_number_edit') else 'INV-2024-001',
+                'category': self.data_panel.category_combo.currentText() if hasattr(self.data_panel, 'category_combo') else 'Utilities',
+                'categoryCode': 'UTIL'  # Default category code
             }
             
-            # Add category code if available
-            if hasattr(self.data_panel, 'category_code_edit'):
-                variables['categoryCode'] = self.data_panel.category_code_edit.text()
+            # Generate new filename
+            new_filename = self._generate_filename(template, data)
             
-            # Remove empty values
-            variables = {k: v for k, v in variables.items() if v.strip()}
+            # Open file dialog to select new location
+            new_path, _ = QFileDialog.getSaveFileName(
+                self, 
+                "Save Renamed File", 
+                f"{new_filename}.pdf", 
+                "PDF Files (*.pdf)"
+            )
             
-            # Save to PDF metadata
-            success = PDFMetadataHandler.save_variables_to_metadata(file_path, variables)
-            
-            if success:
-                logger.info(f"Variables saved to PDF metadata: {variables}")
-            else:
-                logger.warning("Failed to save variables to PDF metadata")
-            
-            return success
-            
+            if new_path:
+                # Perform the rename
+                from ocr_receipt.utils.filename_utils import FilenameUtils
+                try:
+                    new_file_path = FilenameUtils.rename_file(current_file_path, new_filename, str(Path(new_path).parent))
+                    QMessageBox.information(self, "File Renamed", f"File successfully renamed to:\n{Path(new_file_path).name}")
+                    
+                    # Update the file path in the UI
+                    self.file_path_edit.setText(new_file_path)
+                    
+                except Exception as e:
+                    QMessageBox.critical(self, "Rename Error", f"Failed to rename file: {e}")
+                    
         except Exception as e:
-            logger.error(f"Error saving variables to PDF: {e}")
-            return False
+            logger.error(f"Error in browse rename: {e}")
+            QMessageBox.critical(self, "Error", f"An unexpected error occurred: {e}")
 
     def _on_confidence_changed(self, value: int) -> None:
         self.confidence_label.setText(f"{value}%")
@@ -586,11 +606,11 @@ class SinglePDFTab(QWidget):
             data = {
                 'project': self.project_combo.currentText() or 'Q1_2024_Invoices',
                 'documentType': self.document_type_combo.currentText().lower() or 'invoice',
-                'date': '2024-01-15',  # Default date
-                'company': 'Hydro Quebec Inc',  # Default company
-                'total': '1234.56',  # Default total
-                'invoiceNumber': 'INV-2024-001',  # Default invoice number
-                'category': 'Utilities',  # Default category
+                'date': self.data_panel.date_edit.text() if hasattr(self.data_panel, 'date_edit') else '2024-01-15',
+                'company': self.data_panel.company_edit.text() if hasattr(self.data_panel, 'company_edit') else 'Hydro Quebec Inc',
+                'total': self.data_panel.total_edit.text() if hasattr(self.data_panel, 'total_edit') else '1234.56',
+                'invoiceNumber': self.data_panel.invoice_number_edit.text() if hasattr(self.data_panel, 'invoice_number_edit') else 'INV-2024-001',
+                'category': self.data_panel.category_combo.currentText() if hasattr(self.data_panel, 'category_combo') else 'Utilities',
                 'categoryCode': 'UTIL'  # Default category code
             }
             
@@ -622,20 +642,3 @@ class SinglePDFTab(QWidget):
     def update_filename_preview(self) -> None:
         """Public method to update filename preview."""
         self._update_filename_preview() 
-
-    def _on_save_metadata(self):
-        """Save current form variables to PDF metadata."""
-        file_path = self.file_path_edit.text()
-        if not file_path:
-            QMessageBox.warning(self, "No PDF File Selected", "Please select a PDF file first to save variables.")
-            return
-
-        try:
-            success = self.save_variables_to_pdf(file_path)
-            if success:
-                QMessageBox.information(self, "Variables Saved", "Current form variables have been saved to the PDF metadata.")
-            else:
-                QMessageBox.warning(self, "Save Failed", "Failed to save current form variables to PDF metadata.")
-        except Exception as e:
-            logger.error(f"Error saving metadata: {e}")
-            QMessageBox.critical(self, "Save Error", f"An unexpected error occurred while saving variables: {e}") 
