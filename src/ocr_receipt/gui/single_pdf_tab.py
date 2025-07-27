@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QLineEdit, QPushButton, QLabel, QComboBox, QCheckBox, QSlider, QFormLayout, QFrame, QSplitter, QGridLayout, QProgressBar
+    QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QLineEdit, QPushButton, QLabel, QComboBox, QCheckBox, QSlider, QFormLayout, QFrame, QSplitter, QGridLayout, QProgressBar, QMessageBox
 )
 from .widgets.data_panel import DataPanel
 from .widgets.pdf_preview import PDFPreview
@@ -7,8 +7,10 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QIcon
 from ocr_receipt.config import ConfigManager
 from ocr_receipt.parsers.invoice_parser import InvoiceParser, InvoiceParserError
+from ocr_receipt.utils.filename_utils import FilenameUtils
 from pathlib import Path
 import logging
+from typing import Dict
 
 logger = logging.getLogger(__name__)
 
@@ -169,6 +171,16 @@ class SinglePDFTab(QWidget):
         filename_layout = QVBoxLayout(filename_group)
         self.filename_preview = QLabel("Q1_2024_invoice_2024-01-15_hydro_quebec_$1234.56.pdf")
         filename_layout.addWidget(self.filename_preview)
+        
+        # Add save to PDF metadata button
+        save_metadata_layout = QHBoxLayout()
+        self.save_metadata_button = QPushButton("💾 Save Variables to PDF")
+        self.save_metadata_button.setToolTip("Save current form variables to PDF metadata for future use")
+        self.save_metadata_button.clicked.connect(self._on_save_metadata)
+        save_metadata_layout.addWidget(self.save_metadata_button)
+        save_metadata_layout.addStretch()
+        filename_layout.addLayout(save_metadata_layout)
+        
         right_grid.addWidget(filename_group, 3, 0)
 
         right_grid.setRowStretch(4, 1)
@@ -208,6 +220,7 @@ class SinglePDFTab(QWidget):
         """Process PDF file with visual feedback."""
         from PyQt6.QtWidgets import QMessageBox
         from PyQt6.QtCore import QTimer
+        from ocr_receipt.utils.filename_utils import PDFMetadataHandler
         
         try:
             # Stage 1: Loading
@@ -215,6 +228,12 @@ class SinglePDFTab(QWidget):
             
             # Load PDF preview (this might take some time)
             self.pdf_preview.load_pdf(file_path)
+            
+            # Check for embedded variables in PDF metadata
+            embedded_variables = PDFMetadataHandler.load_variables_from_metadata(file_path)
+            if embedded_variables:
+                logger.info(f"Found embedded variables in PDF: {embedded_variables}")
+                self._load_embedded_variables(embedded_variables)
             
             # Stage 2: Converting to images
             self.show_processing_stage("converting")
@@ -254,6 +273,99 @@ class SinglePDFTab(QWidget):
         except Exception as e:
             self.show_processing_stage("error")
             QMessageBox.critical(self, "Error", f"Unexpected error: {e}")
+
+    def _load_embedded_variables(self, variables: Dict[str, str]) -> None:
+        """
+        Load embedded variables from PDF metadata into form fields.
+        
+        Args:
+            variables: Dictionary of variables from PDF metadata
+        """
+        try:
+            # Update project if available
+            if 'project' in variables:
+                project_name = variables['project']
+                index = self.project_combo.findText(project_name)
+                if index >= 0:
+                    self.project_combo.setCurrentIndex(index)
+                else:
+                    # Add the project if it doesn't exist
+                    self.project_combo.addItem(project_name)
+                    self.project_combo.setCurrentText(project_name)
+            
+            # Update document type if available
+            if 'documentType' in variables:
+                doc_type = variables['documentType']
+                index = self.document_type_combo.findText(doc_type)
+                if index >= 0:
+                    self.document_type_combo.setCurrentIndex(index)
+            
+            # Update category if available
+            if 'category' in variables:
+                category_name = variables['category']
+                index = self.data_panel.category_combo.findText(category_name)
+                if index >= 0:
+                    self.data_panel.category_combo.setCurrentIndex(index)
+            
+            # Update category code if available
+            if 'categoryCode' in variables:
+                category_code = variables['categoryCode']
+                # Assuming there's a category code field in the data panel
+                if hasattr(self.data_panel, 'category_code_edit'):
+                    self.data_panel.category_code_edit.setText(category_code)
+            
+            # Update filename preview with embedded data
+            self._update_filename_preview()
+            
+            logger.info(f"Successfully loaded embedded variables: {variables}")
+            
+        except Exception as e:
+            logger.error(f"Failed to load embedded variables: {e}")
+
+    def save_variables_to_pdf(self, file_path: str) -> bool:
+        """
+        Save current form variables to PDF metadata.
+        
+        Args:
+            file_path: Path to the PDF file
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        from ocr_receipt.utils.filename_utils import PDFMetadataHandler
+        
+        try:
+            # Collect current form data
+            variables = {
+                'project': self.project_combo.currentText(),
+                'documentType': self.document_type_combo.currentText().lower(),
+                'category': self.data_panel.category_combo.currentText(),
+                'company': self.data_panel.company_edit.text(),
+                'total': self.data_panel.total_edit.text(),
+                'date': self.data_panel.date_edit.text(),
+                'invoiceNumber': self.data_panel.invoice_number_edit.text()
+            }
+            
+            # Add category code if available
+            if hasattr(self.data_panel, 'category_code_edit'):
+                variables['categoryCode'] = self.data_panel.category_code_edit.text()
+            
+            # Remove empty values
+            variables = {k: v for k, v in variables.items() if v.strip()}
+            
+            # Save to PDF metadata
+            success = PDFMetadataHandler.save_variables_to_metadata(file_path, variables)
+            
+            if success:
+                logger.info(f"Variables saved to PDF metadata: {variables}")
+            else:
+                logger.warning("Failed to save variables to PDF metadata")
+            
+            return success
+            
+        except Exception as e:
+            logger.error(f"Error saving variables to PDF: {e}")
+            return False
 
     def _on_confidence_changed(self, value: int) -> None:
         self.confidence_label.setText(f"{value}%")
@@ -483,7 +595,7 @@ class SinglePDFTab(QWidget):
             }
             
             # Generate filename
-            filename = self._generate_filename(template, data)
+            filename = FilenameUtils.generate_filename(template, data)
             self.filename_preview.setText(f"{filename}.pdf")
             
         except Exception as e:
@@ -493,46 +605,14 @@ class SinglePDFTab(QWidget):
     def _generate_filename(self, template: str, data: dict) -> str:
         """Generate filename from template and data."""
         try:
-            # Replace variables in template
-            result = template
-            for var_name, value in data.items():
-                placeholder = f"{{{var_name}}}"
-                if placeholder in result:
-                    # Clean the value for filename use
-                    clean_value = self._clean_filename_part(value)
-                    result = result.replace(placeholder, clean_value)
-            
-            # Clean up any remaining placeholders
-            import re
-            result = re.sub(r'\{[^}]+\}', '', result)
-            
-            # Clean up separators
-            result = re.sub(r'[_-]+', '_', result)
-            result = result.strip('_-')
-            
-            return result
-            
+            return FilenameUtils.generate_filename(template, data)
         except Exception as e:
             logger.error(f"Failed to generate filename: {e}")
             return "error_generating_filename"
 
     def _clean_filename_part(self, value: str) -> str:
         """Clean a value for use in filename."""
-        if not value:
-            return ""
-        
-        # Replace invalid filename characters
-        import re
-        # Remove or replace invalid characters
-        cleaned = re.sub(r'[<>:"/\\|?*]', '_', value)
-        # Replace spaces with underscores
-        cleaned = re.sub(r'\s+', '_', cleaned)
-        # Remove multiple underscores
-        cleaned = re.sub(r'_+', '_', cleaned)
-        # Remove leading/trailing underscores
-        cleaned = cleaned.strip('_')
-        
-        return cleaned
+        return FilenameUtils.clean_filename_part(value)
 
     def refresh_templates(self) -> None:
         """Refresh templates from configuration."""
@@ -542,3 +622,20 @@ class SinglePDFTab(QWidget):
     def update_filename_preview(self) -> None:
         """Public method to update filename preview."""
         self._update_filename_preview() 
+
+    def _on_save_metadata(self):
+        """Save current form variables to PDF metadata."""
+        file_path = self.file_path_edit.text()
+        if not file_path:
+            QMessageBox.warning(self, "No PDF File Selected", "Please select a PDF file first to save variables.")
+            return
+
+        try:
+            success = self.save_variables_to_pdf(file_path)
+            if success:
+                QMessageBox.information(self, "Variables Saved", "Current form variables have been saved to the PDF metadata.")
+            else:
+                QMessageBox.warning(self, "Save Failed", "Failed to save current form variables to PDF metadata.")
+        except Exception as e:
+            logger.error(f"Error saving metadata: {e}")
+            QMessageBox.critical(self, "Save Error", f"An unexpected error occurred while saving variables: {e}") 
