@@ -165,11 +165,17 @@ class SinglePDFTab(QWidget):
         right_grid.setRowStretch(4, 1)
         left_grid.setRowStretch(1, 1)
 
-        # Add status bar to the left grid (PDF viewer side)
+        # Add status bar and progress bar to the left grid (PDF viewer side)
         self.status_label = QLabel("Ready")
         self.status_label.setStyleSheet("color: #666; font-style: italic;")
         self.status_label.setMaximumHeight(25)  # Constrain height to make it thinner
         left_grid.addWidget(self.status_label, 3, 0)  # Row 3, Column 0
+        
+        # Add progress bar
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setVisible(False)  # Hidden initially
+        self.progress_bar.setMaximumHeight(20)
+        left_grid.addWidget(self.progress_bar, 4, 0)  # Row 4, Column 0
 
         splitter.addWidget(left_grid_widget)
         splitter.addWidget(right_grid_widget)
@@ -586,22 +592,40 @@ class SinglePDFTab(QWidget):
         message = stage_messages.get(stage, 'Processing...')
         self.status_label.setText(message)
         
-        # Simplified processing stage handling - just disable/enable controls
+        # Configure progress bar based on stage
         processing_stages = ["loading", "converting", "ocr", "extracting", "matching"]
         
         if stage in processing_stages:
+            # Show indeterminate progress for processing stages
+            self.progress_bar.setVisible(True)
+            self.progress_bar.setMinimum(0)
+            self.progress_bar.setMaximum(0)  # Indeterminate progress
             self._disable_controls_during_processing()
-        else:
+        elif stage == 'complete':
+            # Hide progress bar and show completion
+            self.progress_bar.setVisible(False)
             self._enable_controls_after_processing()
+        elif stage == 'error':
+            # Hide progress bar and show error
+            self.progress_bar.setVisible(False)
+            self._enable_controls_after_processing()
+        else:
+            # Treat unknown stages as processing stages (disable controls)
+            self.progress_bar.setVisible(True)
+            self.progress_bar.setMinimum(0)
+            self.progress_bar.setMaximum(0)  # Indeterminate progress
+            self._disable_controls_during_processing()
 
     def _disable_controls_during_processing(self):
         """Disable controls during processing."""
+        self.browse_rename_button.setEnabled(False)
         self.ocr_button.setEnabled(False)
         self.rename_button.setEnabled(False)
         self.raw_data_button.setEnabled(False)
 
     def _enable_controls_after_processing(self):
         """Re-enable controls after processing."""
+        self.browse_rename_button.setEnabled(True)
         self.ocr_button.setEnabled(True)
         self.rename_button.setEnabled(True)
         self.raw_data_button.setEnabled(True)

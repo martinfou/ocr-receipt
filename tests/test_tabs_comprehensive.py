@@ -29,15 +29,28 @@ class TestMainWindowTabs:
     @pytest.fixture
     def main_window(self, qtbot):
         """Create a main window for testing."""
-        window = OCRMainWindow()
-        qtbot.addWidget(window)
-        return window
+        # Mock the config to return English language
+        from unittest.mock import patch
+        with patch('ocr_receipt.config.ConfigManager.get') as mock_get:
+            def side_effect(key, default=None):
+                if key == 'app.ui_language':
+                    return 'en'
+                elif key == 'gui.window_size':
+                    return [1200, 800]
+                elif key == 'database.path':
+                    return 'ocr_receipts.db'
+                return default
+            mock_get.side_effect = side_effect
+            
+            window = OCRMainWindow()
+            qtbot.addWidget(window)
+            return window
     
     def test_tab_widget_creation(self, main_window):
         """Test that the tab widget is created correctly."""
         assert main_window.tab_widget is not None
         assert isinstance(main_window.tab_widget, QTabWidget)
-        assert main_window.tab_widget.count() == 6  # Should have 6 tabs
+        assert main_window.tab_widget.count() == 7  # Should have 7 tabs
     
     def test_tab_names(self, main_window):
         """Test that all expected tabs are present with correct names."""
@@ -46,6 +59,7 @@ class TestMainWindowTabs:
             "Business Keywords", 
             "Projects",
             "Categories",
+            "Document Types",
             "File Naming",
             "Settings"
         ]

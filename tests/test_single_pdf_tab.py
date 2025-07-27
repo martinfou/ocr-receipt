@@ -79,11 +79,11 @@ def test_single_pdf_tab_has_header(single_pdf_tab):
 
 def test_data_panel_fields_editable(single_pdf_tab, qtbot):
     panel = single_pdf_tab.data_panel
-    panel.company_edit.setText("TestCo")
+    panel.company_edit.setEditText("TestCo")
     panel.total_edit.setText("123.45")
     panel.date_edit.setText("2024-07-01")
     panel.invoice_number_edit.setText("INV-001")
-    assert panel.company_edit.text() == "TestCo"
+    assert panel.company_edit.currentText() == "TestCo"
     assert panel.total_edit.text() == "123.45"
     assert panel.date_edit.text() == "2024-07-01"
     assert panel.invoice_number_edit.text() == "INV-001"

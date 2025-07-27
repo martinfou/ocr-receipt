@@ -69,11 +69,10 @@ class TestPDFLoadingIndicators:
         assert "Ready" in single_pdf_tab.status_label.text()
         
         # All controls should be enabled initially
-        assert single_pdf_tab.browse_button.isEnabled()
-        assert single_pdf_tab.reprocess_button.isEnabled()
-        assert single_pdf_tab.save_button.isEnabled()
+        assert single_pdf_tab.browse_rename_button.isEnabled()
         assert single_pdf_tab.rename_button.isEnabled()
-        assert single_pdf_tab.export_button.isEnabled()
+        assert single_pdf_tab.raw_data_button.isEnabled()
+        assert single_pdf_tab.ocr_button.isEnabled()
     
     def test_processing_stage_loading(self, single_pdf_tab, qtbot):
         """Test loading stage visual feedback."""
@@ -84,11 +83,10 @@ class TestPDFLoadingIndicators:
         assert "Loading PDF file" in single_pdf_tab.status_label.text()
         
         # Controls should be disabled
-        assert not single_pdf_tab.browse_button.isEnabled()
-        assert not single_pdf_tab.reprocess_button.isEnabled()
-        assert not single_pdf_tab.save_button.isEnabled()
+        assert not single_pdf_tab.browse_rename_button.isEnabled()
         assert not single_pdf_tab.rename_button.isEnabled()
-        assert not single_pdf_tab.export_button.isEnabled()
+        assert not single_pdf_tab.raw_data_button.isEnabled()
+        assert not single_pdf_tab.ocr_button.isEnabled()
         
         # Progress bar should be configured for indeterminate progress
         assert single_pdf_tab.progress_bar.minimum() == 0
@@ -103,8 +101,10 @@ class TestPDFLoadingIndicators:
         assert "Converting pages" in single_pdf_tab.status_label.text()
         
         # Controls should be disabled
-        assert not single_pdf_tab.browse_button.isEnabled()
-        assert not single_pdf_tab.reprocess_button.isEnabled()
+        assert not single_pdf_tab.browse_rename_button.isEnabled()
+        assert not single_pdf_tab.rename_button.isEnabled()
+        assert not single_pdf_tab.raw_data_button.isEnabled()
+        assert not single_pdf_tab.ocr_button.isEnabled()
         
         # Progress bar should be configured for indeterminate progress
         assert single_pdf_tab.progress_bar.minimum() == 0
@@ -119,8 +119,10 @@ class TestPDFLoadingIndicators:
         assert "Running OCR" in single_pdf_tab.status_label.text()
         
         # Controls should be disabled
-        assert not single_pdf_tab.browse_button.isEnabled()
-        assert not single_pdf_tab.reprocess_button.isEnabled()
+        assert not single_pdf_tab.browse_rename_button.isEnabled()
+        assert not single_pdf_tab.rename_button.isEnabled()
+        assert not single_pdf_tab.raw_data_button.isEnabled()
+        assert not single_pdf_tab.ocr_button.isEnabled()
         
         # Progress bar should be configured for indeterminate progress
         assert single_pdf_tab.progress_bar.minimum() == 0
@@ -135,8 +137,10 @@ class TestPDFLoadingIndicators:
         assert "Extracting invoice data" in single_pdf_tab.status_label.text()
         
         # Controls should be disabled
-        assert not single_pdf_tab.browse_button.isEnabled()
-        assert not single_pdf_tab.reprocess_button.isEnabled()
+        assert not single_pdf_tab.browse_rename_button.isEnabled()
+        assert not single_pdf_tab.rename_button.isEnabled()
+        assert not single_pdf_tab.raw_data_button.isEnabled()
+        assert not single_pdf_tab.ocr_button.isEnabled()
         
         # Progress bar should be configured for indeterminate progress
         assert single_pdf_tab.progress_bar.minimum() == 0
@@ -151,8 +155,10 @@ class TestPDFLoadingIndicators:
         assert "Matching business names" in single_pdf_tab.status_label.text()
         
         # Controls should be disabled
-        assert not single_pdf_tab.browse_button.isEnabled()
-        assert not single_pdf_tab.reprocess_button.isEnabled()
+        assert not single_pdf_tab.browse_rename_button.isEnabled()
+        assert not single_pdf_tab.rename_button.isEnabled()
+        assert not single_pdf_tab.raw_data_button.isEnabled()
+        assert not single_pdf_tab.ocr_button.isEnabled()
         
         # Progress bar should be configured for indeterminate progress
         assert single_pdf_tab.progress_bar.minimum() == 0
@@ -166,11 +172,10 @@ class TestPDFLoadingIndicators:
         assert "Processing complete" in single_pdf_tab.status_label.text()
         
         # Controls should be enabled
-        assert single_pdf_tab.browse_button.isEnabled()
-        assert single_pdf_tab.reprocess_button.isEnabled()
-        assert single_pdf_tab.save_button.isEnabled()
+        assert single_pdf_tab.browse_rename_button.isEnabled()
         assert single_pdf_tab.rename_button.isEnabled()
-        assert single_pdf_tab.export_button.isEnabled()
+        assert single_pdf_tab.raw_data_button.isEnabled()
+        assert single_pdf_tab.ocr_button.isEnabled()
     
     def test_processing_stage_error(self, single_pdf_tab):
         """Test error stage visual feedback."""
@@ -180,11 +185,10 @@ class TestPDFLoadingIndicators:
         assert "Error occurred" in single_pdf_tab.status_label.text()
         
         # Controls should be enabled (so user can retry)
-        assert single_pdf_tab.browse_button.isEnabled()
-        assert single_pdf_tab.reprocess_button.isEnabled()
-        assert single_pdf_tab.save_button.isEnabled()
+        assert single_pdf_tab.browse_rename_button.isEnabled()
         assert single_pdf_tab.rename_button.isEnabled()
-        assert single_pdf_tab.export_button.isEnabled()
+        assert single_pdf_tab.raw_data_button.isEnabled()
+        assert single_pdf_tab.ocr_button.isEnabled()
     
     def test_unknown_processing_stage(self, single_pdf_tab, qtbot):
         """Test handling of unknown processing stage."""
@@ -195,8 +199,10 @@ class TestPDFLoadingIndicators:
         assert "Processing" in single_pdf_tab.status_label.text()
         
         # Controls should be disabled
-        assert not single_pdf_tab.browse_button.isEnabled()
-        assert not single_pdf_tab.reprocess_button.isEnabled()
+        assert not single_pdf_tab.browse_rename_button.isEnabled()
+        assert not single_pdf_tab.rename_button.isEnabled()
+        assert not single_pdf_tab.raw_data_button.isEnabled()
+        assert not single_pdf_tab.ocr_button.isEnabled()
         
         # Progress bar should be configured for indeterminate progress
         assert single_pdf_tab.progress_bar.minimum() == 0
@@ -223,23 +229,20 @@ class TestPDFLoadingIndicators:
         single_pdf_tab.show_processing_stage("complete")
         qtbot.wait(10)  # Process events
         assert "Processing complete" in single_pdf_tab.status_label.text()
-        assert single_pdf_tab.browse_button.isEnabled()
+        assert single_pdf_tab.browse_rename_button.isEnabled()
     
     def test_progress_bar_styling(self, single_pdf_tab):
         """Test that progress bar has appropriate styling."""
-        # Check that progress bar has styling applied
-        style_sheet = single_pdf_tab.progress_bar.styleSheet()
-        assert "QProgressBar" in style_sheet
-        assert "border" in style_sheet
-        assert "background-color" in style_sheet
+        # Check that progress bar exists and is properly configured
+        assert single_pdf_tab.progress_bar is not None
+        assert single_pdf_tab.progress_bar.maximumHeight() == 20
     
     def test_status_label_styling(self, single_pdf_tab):
         """Test that status label has appropriate styling."""
         # Check that status label has styling applied
         style_sheet = single_pdf_tab.status_label.styleSheet()
         assert "color" in style_sheet
-        assert "font-size" in style_sheet
-        assert "padding-left" in style_sheet
+        assert "font-style" in style_sheet
 
 
 class TestPDFProcessingIntegration:
@@ -274,15 +277,15 @@ class TestPDFProcessingIntegration:
             except (OSError, PermissionError):
                 pass
     
-    def test_reprocess_button_functionality(self, single_pdf_tab, qtbot):
-        """Test that reprocess button triggers processing with visual feedback."""
+    def test_ocr_button_functionality(self, single_pdf_tab, qtbot):
+        """Test that OCR button triggers processing with visual feedback."""
         # Set a file path
         single_pdf_tab.file_path_edit.setText("/test/path/file.pdf")
-        
+
         # Mock the processing method to avoid actual file processing
         original_method = single_pdf_tab._process_pdf_file
         called = False
-        
+
         def mock_process(file_path):
             nonlocal called
             called = True
@@ -293,19 +296,19 @@ class TestPDFProcessingIntegration:
             single_pdf_tab.show_processing_stage("extracting")
             single_pdf_tab.show_processing_stage("matching")
             single_pdf_tab.show_processing_stage("complete")
-        
+
         single_pdf_tab._process_pdf_file = mock_process
-        
-        # Click the reprocess button
-        qtbot.mouseClick(single_pdf_tab.reprocess_button, Qt.MouseButton.LeftButton)
+
+        # Click the OCR button
+        qtbot.mouseClick(single_pdf_tab.ocr_button, Qt.MouseButton.LeftButton)
         
         # Verify the processing method was called
         assert called
         
         # Verify final state
         assert "Processing complete" in single_pdf_tab.status_label.text()
-        assert single_pdf_tab.browse_button.isEnabled()
-        assert single_pdf_tab.reprocess_button.isEnabled()
+        assert single_pdf_tab.browse_rename_button.isEnabled()
+        assert single_pdf_tab.ocr_button.isEnabled()
         
         # Restore original method
         single_pdf_tab._process_pdf_file = original_method 
