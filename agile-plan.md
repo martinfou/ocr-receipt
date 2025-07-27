@@ -457,7 +457,7 @@
   - Implement code support
   - **Story Points**: 8
 
-- [ ] **T8.3** - Implement Tables and Dialogs
+- [x] **T8.3** - Implement Tables and Dialogs
   - Create ProjectsTable widget
   - Implement CategoriesTable widget
   - Add AddProjectDialog and AddCategoryDialog

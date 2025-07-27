@@ -5,9 +5,9 @@ import pytest
 from PyQt6.QtWidgets import QApplication, QTableWidgetItem, QDialog, QMessageBox
 from PyQt6.QtCore import Qt
 from unittest.mock import Mock, patch
-from ocr_receipt.gui.categories_tab import (
-    AddCategoryDialog, EditCategoryDialog, CategoriesTable, CategoriesTab
-)
+from ocr_receipt.gui.categories_tab import CategoriesTab
+from ocr_receipt.gui.widgets.categories_table import CategoriesTable
+from ocr_receipt.gui.dialogs.add_category_dialog import AddCategoryDialog, EditCategoryDialog
 from ocr_receipt.business.category_manager import CategoryManager
 from ocr_receipt.utils.translation_helper import get_translation_helper
 
