@@ -501,7 +501,7 @@
 - Build configuration persistence
 
 #### Tasks
-- [ ] **T9.1** - Create File Naming Tab
+- [x] **T9.1** - Create File Naming Tab
   - Implement FileNamingTab class
   - Add template configuration
   - Create filename preview

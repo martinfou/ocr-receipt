@@ -41,6 +41,19 @@ class ConfigManager:
             'ocr': {
                 'confidence_threshold': 0.6,
                 'max_retries': 3
+            },
+            'file_naming': {
+                'templates': {
+                    'default': {
+                        'name': 'Default Template',
+                        'description': 'Standard template with project, date, company, and total',
+                        'template': '{project}_{documentType}_{date}_{company}_{total}',
+                        'active': True
+                    }
+                },
+                'active_template': 'default',
+                'date_format': '%Y-%m-%d',
+                'include_invoice_number': True
             }
         }
         
