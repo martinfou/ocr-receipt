@@ -464,7 +464,7 @@
   - **Story Points**: 8
 
 
-- [ ] **T8.5** - Add tab tests
+- [x] **T8.5** - Add tab tests
   - GUI tests for projects and categories
   - Dialog tests
   - Integration tests
