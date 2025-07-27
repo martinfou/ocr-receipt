@@ -485,11 +485,11 @@
   - **Story Points**: 3
 
 #### Definition of Done
-- [ ] Projects management functional
-- [ ] Categories management working
-- [ ] Hierarchical organization operational
-- [ ] CRUD operations working
-- [ ] Tests passing
+- [x] Projects management functional
+- [x] Categories management working
+- [x] Hierarchical organization operational
+- [x] CRUD operations working
+- [x] Tests passing
 
 ---
 
