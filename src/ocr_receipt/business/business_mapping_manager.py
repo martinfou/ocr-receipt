@@ -6,15 +6,25 @@ exact, variant, and fuzzy matching using FuzzyMatcher.
 """
 
 from typing import List, Dict, Any, Optional, Tuple
+from PyQt6.QtCore import QObject, pyqtSignal
 from .database_manager import DatabaseManager
 from ocr_receipt.core.fuzzy_matcher import FuzzyMatcher
 
-class BusinessMappingManager:
+class BusinessMappingManager(QObject):
     """
     Manages business names and keywords for invoice matching.
     Integrates with DatabaseManager and FuzzyMatcher.
     """
+    # Signals for UI updates
+    business_added = pyqtSignal(str)  # Emits business name when added
+    business_updated = pyqtSignal(str, str)  # Emits old_name, new_name when updated
+    business_deleted = pyqtSignal(str)  # Emits business name when deleted
+    keyword_added = pyqtSignal(str, str)  # Emits business_name, keyword when keyword added
+    keyword_updated = pyqtSignal(str, str, str)  # Emits business_name, old_keyword, new_keyword when updated
+    keyword_deleted = pyqtSignal(str, str)  # Emits business_name, keyword when deleted
+    
     def __init__(self, db_manager: DatabaseManager, config: Optional[Dict[str, Any]] = None):
+        super().__init__()
         self.db_manager = db_manager
         self.config = config or {}
         self.fuzzy_matcher = FuzzyMatcher(self.config)
@@ -36,6 +46,8 @@ class BusinessMappingManager:
             self.db_manager.add_business(business_name, metadata or {})
             # Automatically add a keyword for the business name with the specified match type (case-insensitive by default)
             self.add_keyword(business_name, business_name, is_case_sensitive=0, match_type=match_type)
+            # Emit signal for UI updates
+            self.business_added.emit(business_name)
             return True
         except Exception as e:
             # Log error
@@ -50,7 +62,11 @@ class BusinessMappingManager:
             if not business:
                 return False
             business_id = business["id"]
-            return self.db_manager.add_keyword(business_id, keyword, is_case_sensitive, match_type)
+            success = self.db_manager.add_keyword(business_id, keyword, is_case_sensitive, match_type)
+            if success:
+                # Emit signal for UI updates
+                self.keyword_added.emit(business_name, keyword)
+            return success
         except Exception as e:
             print(f"Error adding keyword: {e}")
             return False
@@ -63,7 +79,11 @@ class BusinessMappingManager:
             if not business:
                 return False
             business_id = business["id"]
-            return self.db_manager.update_keyword(business_id, old_keyword, new_keyword, is_case_sensitive, match_type)
+            success = self.db_manager.update_keyword(business_id, old_keyword, new_keyword, is_case_sensitive, match_type)
+            if success:
+                # Emit signal for UI updates
+                self.keyword_updated.emit(business_name, old_keyword, new_keyword)
+            return success
         except Exception as e:
             print(f"Error updating keyword: {e}")
             return False
@@ -92,9 +112,15 @@ class BusinessMappingManager:
                 success = self.db_manager.update_business_name(old_business_id, new_business_name)
                 if not success:
                     return False
+                # Emit signal for business update
+                self.business_updated.emit(old_business_name, new_business_name)
             
             # Update the keyword
-            return self.db_manager.update_keyword(old_business_id, old_keyword, new_keyword, is_case_sensitive, match_type)
+            success = self.db_manager.update_keyword(old_business_id, old_keyword, new_keyword, is_case_sensitive, match_type)
+            if success:
+                # Emit signal for keyword update
+                self.keyword_updated.emit(new_business_name, old_keyword, new_keyword)
+            return success
         except Exception as e:
             print(f"Error updating business and keyword: {e}")
             return False
@@ -107,9 +133,49 @@ class BusinessMappingManager:
             if not business:
                 return False
             business_id = business["id"]
-            return self.db_manager.delete_keyword(business_id, keyword)
+            success = self.db_manager.delete_keyword(business_id, keyword)
+            if success:
+                # Emit signal for UI updates
+                self.keyword_deleted.emit(business_name, keyword)
+            return success
         except Exception as e:
             print(f"Error deleting keyword: {e}")
+            return False
+
+    def is_last_keyword_for_business(self, business_name: str, keyword: str) -> bool:
+        """Check if this is the last keyword for the business."""
+        try:
+            keywords = self.get_keywords_for_business(business_name)
+            return len(keywords) == 1 and keywords[0]['keyword'] == keyword
+        except Exception as e:
+            print(f"Error checking if last keyword for business {business_name}: {e}")
+            return False
+
+    def delete_business(self, business_name: str) -> bool:
+        """Delete a business and all its keywords. Returns True if deleted, False if error."""
+        try:
+            # Find business ID efficiently
+            business = self.db_manager.get_business_by_name(business_name)
+            if not business:
+                return False
+            business_id = business["id"]
+            
+            # First, delete all keywords for this business
+            keywords = self.db_manager.get_all_keywords()
+            business_keywords = [k for k in keywords if k['business_name'] == business_name]
+            
+            for keyword in business_keywords:
+                self.db_manager.delete_keyword(business_id, keyword['keyword'])
+            
+            # Then delete the business
+            query = "DELETE FROM businesses WHERE id = ?"
+            self.db_manager.execute_query(query, (business_id,))
+            
+            # Emit signal for UI updates
+            self.business_deleted.emit(business_name)
+            return True
+        except Exception as e:
+            print(f"Error deleting business: {e}")
             return False
 
     def get_business_names(self) -> List[str]:
@@ -128,6 +194,24 @@ class BusinessMappingManager:
         except Exception as e:
             print(f"Error getting keywords: {e}")
             return []
+
+    def get_keywords_for_business(self, business_name: str) -> List[Dict[str, Any]]:
+        """Get all keywords for a specific business."""
+        try:
+            keywords = self.get_keywords()
+            return [kw for kw in keywords if kw['business_name'] == business_name]
+        except Exception as e:
+            print(f"Error getting keywords for business {business_name}: {e}")
+            return []
+
+    def get_keyword_count_for_business(self, business_name: str) -> int:
+        """Get the number of keywords for a specific business."""
+        try:
+            keywords = self.get_keywords_for_business(business_name)
+            return len(keywords)
+        except Exception as e:
+            print(f"Error getting keyword count for business {business_name}: {e}")
+            return 0
 
     def find_business_match(self, text: str) -> Optional[Tuple[str, str, float]]:
         """

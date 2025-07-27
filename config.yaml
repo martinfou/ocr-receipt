@@ -1,7 +1,7 @@
 app:
   mode: development
   ocr_language: eng
-  ui_language: en
+  ui_language: fr
 database:
   path: ocr_receipts.db
   timeout: 30
@@ -15,7 +15,12 @@ file_naming:
       active: true
       description: Standard template with project, date, company, and total
       name: Default Template
-      template: '{project}_{documentType}_{date}_{company}_{total}'
+      template: '{project}_{documentType}_{date}__{category}_{company}_${total}'
+    facture:
+      active: false
+      description: null
+      name: facture
+      template: '{project}_{documentType}_{date}_{company}_{category}_${total}'
     testtemplate:
       active: false
       description: null

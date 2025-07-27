@@ -22,9 +22,10 @@ class FileNamingTab(QWidget):
     
     template_changed = pyqtSignal(str)  # Signal emitted when template changes
     
-    def __init__(self, config_manager: ConfigManager, parent: Optional[QWidget] = None) -> None:
+    def __init__(self, config_manager: ConfigManager, document_type_manager=None, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self.config_manager = config_manager
+        self.document_type_manager = document_type_manager
         self.templates: Dict[str, Dict[str, Any]] = {}
         self.active_template_id: Optional[str] = None
         self._setup_ui()
@@ -115,7 +116,14 @@ class FileNamingTab(QWidget):
         sample_form.addRow(tr("file_naming_tab.sample_project"), self.sample_project)
         
         self.sample_document_type = QComboBox()
-        self.sample_document_type.addItems(["invoice", "credit_card", "receipt"])
+        # Populate with document types from manager or fallback to defaults
+        if hasattr(self, 'document_type_manager') and self.document_type_manager:
+            document_types = self.document_type_manager.get_document_type_names()
+            # Convert to lowercase for consistency with existing format
+            document_types = [dt.lower() for dt in document_types]
+            self.sample_document_type.addItems(document_types)
+        else:
+            self.sample_document_type.addItems(["invoice", "credit_card", "receipt"])
         self.sample_document_type.currentTextChanged.connect(self._update_preview)
         sample_form.addRow(tr("file_naming_tab.sample_document_type"), self.sample_document_type)
         
@@ -134,6 +142,10 @@ class FileNamingTab(QWidget):
         self.sample_invoice_number = QLineEdit("INV-2024-001")
         self.sample_invoice_number.textChanged.connect(self._update_preview)
         sample_form.addRow(tr("file_naming_tab.sample_invoice_number"), self.sample_invoice_number)
+        
+        self.sample_check_number = QLineEdit("CHK-2024-001")
+        self.sample_check_number.textChanged.connect(self._update_preview)
+        sample_form.addRow(tr("file_naming_tab.sample_check_number"), self.sample_check_number)
         
         self.sample_category = QLineEdit("Utilities")
         self.sample_category.textChanged.connect(self._update_preview)
@@ -423,6 +435,7 @@ class FileNamingTab(QWidget):
                 'company': self.sample_company.text(),
                 'total': self.sample_total.text(),
                 'invoiceNumber': self.sample_invoice_number.text(),
+                'checkNumber': self.sample_check_number.text(),
                 'category': self.sample_category.text(),
                 'categoryCode': self.sample_category_code.text()
             }
@@ -478,23 +491,35 @@ class FileNamingTab(QWidget):
         QMessageBox.information(self, tr("file_naming_tab.help_title"), help_text)
 
     def update_language(self) -> None:
-        """Update all text elements when language changes."""
-        # Update title and subtitle
-        title_label = self.findChild(QLabel, "title_label")
-        if title_label:
-            title_label.setText(tr("file_naming_tab.title"))
-        
-        subtitle_label = self.findChild(QLabel, "subtitle_label")
-        if subtitle_label:
-            subtitle_label.setText(tr("file_naming_tab.subtitle"))
-        
-        # Update button texts
+        """Update the UI language."""
+        # Update button texts and labels
         self.add_template_button.setText(tr("file_naming_tab.add_template"))
         self.edit_template_button.setText(tr("file_naming_tab.edit_template"))
         self.delete_template_button.setText(tr("file_naming_tab.delete_template"))
         self.set_active_button.setText(tr("file_naming_tab.set_active"))
         self.help_button.setText(tr("file_naming_tab.help"))
-        
-        # Update status label
-        if hasattr(self, 'status_label'):
-            self.status_label.setText(tr("file_naming_tab.status_ready")) 
+    
+    def refresh_document_types(self) -> None:
+        """Refresh the document type dropdown with current document types."""
+        try:
+            # Store current selection
+            current_text = self.sample_document_type.currentText()
+            
+            # Clear and repopulate
+            self.sample_document_type.clear()
+            
+            if hasattr(self, 'document_type_manager') and self.document_type_manager:
+                document_types = self.document_type_manager.get_document_type_names()
+                # Convert to lowercase for consistency with existing format
+                document_types = [dt.lower() for dt in document_types]
+                self.sample_document_type.addItems(document_types)
+            else:
+                self.sample_document_type.addItems(["invoice", "credit_card", "receipt"])
+            
+            # Restore selection if it still exists
+            if current_text:
+                index = self.sample_document_type.findText(current_text)
+                if index >= 0:
+                    self.sample_document_type.setCurrentIndex(index)
+        except Exception as e:
+            logger.error(f"Error refreshing document type dropdown: {e}") 

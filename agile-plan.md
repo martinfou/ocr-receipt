@@ -428,6 +428,58 @@
   - Ensure proper error handling for duplicate business names
   - **Story Points**: 4
 
+- [x] **T7.10** - Enhanced Business Keyword Management
+  - Add methods to get keywords for specific businesses
+  - Implement confirmation dialog when deleting last keyword of a business
+  - Create AddKeywordDialog for adding keywords to existing businesses
+  - Add "Add Keyword" and "Delete Business" buttons to Business Keywords Tab
+  - Implement business deletion functionality with confirmation
+  - Add comprehensive validation and error handling
+  - Create comprehensive test suite for new functionality
+  - Add translation keys for all new UI elements
+  - **Story Points**: 8
+
+- [x] **T7.11** - Fix Business Deletion Bug
+  - Fix bug where deleting last keyword for a business doesn't delete the business
+  - Update _on_delete_keyword and _on_keywords_deleted methods to call delete_business
+  - Add test to verify business deletion when last keyword is removed
+  - Ensure proper business cleanup after keyword deletion
+  - **Story Points**: 2
+
+- [x] **T7.12** - Fix PDF Viewer Height in Single PDF Tab
+  - Fix PDF viewer not extending to bottom of window
+  - Adjust row stretch in grid layout to properly expand PDF preview area
+  - Ensure PDF viewer uses full available vertical space
+  - **Story Points**: 1
+
+- [x] **T7.13** - Fix Total Amount Formatting
+  - Ensure total amounts always display with 2 decimal places (e.g., "44.00")
+  - Update DataPanel.load_data method to format totals with f"{total:.2f}"
+  - Update filename generation to use formatted totals
+  - Add comprehensive tests for total formatting functionality
+  - **Story Points**: 2
+
+- [x] **T7.14** - Set PDF Default Display to Fit Width
+  - Change PDF preview default from zoom level to Fit Width mode
+  - Update PDFPreview.load_pdf method to set _fit_width_mode = True by default
+  - Ensure PDFs display optimally when first opened
+  - **Story Points**: 1
+
+- [x] **T7.15** - Remove File Rename Success Popup
+  - Remove QMessageBox.information popup when file is successfully renamed
+  - Keep status bar message for user feedback
+  - Improve user experience by reducing unnecessary popups
+  - **Story Points**: 1
+
+- [x] **T7.16** - Implement Document Types Management Tab
+  - Create database migration for document_types table
+  - Implement DocumentTypeManager for business logic
+  - Create DocumentTypesTab with CRUD operations
+  - Add document types tab to main window
+  - Update existing tabs to use managed document types
+  - Add comprehensive translations for document types management
+  - **Story Points**: 5
+
 #### Definition of Done
 - [ ] Keywords management functional
 - [ ] CRUD operations working
@@ -603,17 +655,25 @@
   - Fix integration issues
   - **Story Points**: 8
 
-- [ ] **T11.2** - Performance optimization
+- [x] **T11.2** - Performance optimization
   - Optimize OCR processing
   - Improve database queries
   - Enhance GUI responsiveness
   - **Story Points**: 8
 
-- [ ] **T11.3** - Bug fixing and refinement
+- [x] **T11.3** - Bug fixing and refinement
   - Fix identified bugs
   - Improve error handling
   - Enhance user experience
   - **Story Points**: 8
+
+- [x] **T11.6** - Fix business keyword deletion UI refresh
+  - Fix right-click context menu deletion not refreshing UI
+  - Add keywords_deleted signal to KeywordsTable
+  - Connect signals in BusinessKeywordsTab for automatic UI updates
+  - Ensure proper signal emission from BusinessMappingManager
+  - Test deletion functionality with comprehensive test suite
+  - **Story Points**: 3
 
 - [ ] **T11.4** - Documentation
   - Create user documentation
@@ -629,8 +689,8 @@
 
 #### Definition of Done
 - [ ] All components integrated
-- [ ] Performance optimized
-- [ ] Bugs fixed
+- [x] Performance optimized
+- [x] Bugs fixed
 - [ ] Documentation complete
 - [ ] All tests passing
 

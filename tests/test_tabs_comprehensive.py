@@ -106,9 +106,10 @@ class TestSinglePDFTab:
         assert hasattr(single_pdf_tab, 'file_path_edit')
         assert hasattr(single_pdf_tab, 'pdf_preview')
         assert hasattr(single_pdf_tab, 'data_panel')
-        assert hasattr(single_pdf_tab, 'browse_button')
-        assert hasattr(single_pdf_tab, 'reprocess_button')
-        assert hasattr(single_pdf_tab, 'save_button')
+        assert hasattr(single_pdf_tab, 'browse_rename_button')
+        assert hasattr(single_pdf_tab, 'ocr_button')
+        assert hasattr(single_pdf_tab, 'rename_button')
+        assert hasattr(single_pdf_tab, 'raw_data_button')
     
     def test_file_path_edit_functionality(self, single_pdf_tab, qtbot):
         """Test file path edit functionality."""
@@ -128,9 +129,9 @@ class TestSinglePDFTab:
         """Test that data panel fields are editable."""
         panel = single_pdf_tab.data_panel
         
-        # Test company field
-        panel.company_edit.setText("Test Company")
-        assert panel.company_edit.text() == "Test Company"
+        # Test company field (now EditableComboBox)
+        panel.company_edit.setCurrentText("Test Company")
+        assert panel.company_edit.currentText() == "Test Company"
         
         # Test total field
         panel.total_edit.setText("123.45")

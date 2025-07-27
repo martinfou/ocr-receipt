@@ -67,13 +67,15 @@ def single_pdf_tab(tmp_path, qtbot, app):
 
 def test_single_pdf_tab_instantiates(single_pdf_tab):
     assert single_pdf_tab is not None
-    assert single_pdf_tab.file_path_edit is not None
     assert single_pdf_tab.pdf_preview is not None
     assert single_pdf_tab.data_panel is not None
 
-def test_file_path_editable(single_pdf_tab, qtbot):
-    single_pdf_tab.file_path_edit.setText("/fake/path/to/invoice.pdf")
-    assert single_pdf_tab.file_path_edit.text() == "/fake/path/to/invoice.pdf"
+def test_single_pdf_tab_has_header(single_pdf_tab):
+    """Test that the tab has a proper header section."""
+    # Check that the tab has the expected structure without file selection controls
+    assert hasattr(single_pdf_tab, 'pdf_preview')
+    assert hasattr(single_pdf_tab, 'data_panel')
+    assert hasattr(single_pdf_tab, 'template_combo')
 
 def test_data_panel_fields_editable(single_pdf_tab, qtbot):
     panel = single_pdf_tab.data_panel

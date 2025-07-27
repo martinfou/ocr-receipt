@@ -92,7 +92,7 @@ class PDFPreview(QWidget):
 
     def load_pdf(self, pdf_path: str) -> None:
         """
-        Load the PDF and display the first page.
+        Load the PDF and display the first page with Fit Width by default.
         """
         self._pdf_path = pdf_path
         self.current_page = 1
@@ -109,6 +109,10 @@ class PDFPreview(QWidget):
             self.total_pages = 1
             self.pdf_label.setText(f"[PDF Load Error: {e}]")
             return
+        
+        # Set default to Fit Width mode
+        self._fit_width_mode = True
+        self._fit_height_mode = False
         self._update_view()
 
     def _update_view(self) -> None:

@@ -5,12 +5,14 @@ from .single_pdf_tab import SinglePDFTab
 from .business_keywords_tab import BusinessKeywordsTab
 from .projects_tab import ProjectsTab
 from .categories_tab import CategoriesTab
+from .document_types_tab import DocumentTypesTab
 from .file_naming_tab import FileNamingTab
 from .settings_tab import SettingsTab
 from ocr_receipt.business.database_manager import DatabaseManager
 from ocr_receipt.business.business_mapping_manager import BusinessMappingManager
 from ocr_receipt.business.project_manager import ProjectManager
 from ocr_receipt.business.category_manager import CategoryManager
+from ocr_receipt.business.document_type_manager import DocumentTypeManager
 from ocr_receipt.utils.translation_helper import set_language, tr
 
 class OCRMainWindow(QMainWindow):
@@ -28,6 +30,7 @@ class OCRMainWindow(QMainWindow):
         self.business_mapping_manager = BusinessMappingManager(self.db_manager)
         self.project_manager = ProjectManager(self.db_manager)
         self.category_manager = CategoryManager(self.db_manager)
+        self.document_type_manager = DocumentTypeManager(self.db_manager)
         self._setup_ui()
 
     def _init_translations(self):
@@ -51,12 +54,21 @@ class OCRMainWindow(QMainWindow):
             business_mapping_manager=self.business_mapping_manager,
             project_manager=self.project_manager,
             category_manager=self.category_manager,
+            document_type_manager=self.document_type_manager,
             config_manager=self.config_manager
         )
         self.tab_widget.addTab(self.single_pdf_tab, tr("single_pdf_tab.title"))
         
         self.business_keywords_tab = BusinessKeywordsTab(self.business_mapping_manager)
         self.tab_widget.addTab(self.business_keywords_tab, tr("business_keywords_tab.title"))
+        
+        # Connect business mapping manager signals to refresh business keywords tab
+        self.business_mapping_manager.business_added.connect(self._on_business_changed)
+        self.business_mapping_manager.business_updated.connect(self._on_business_changed)
+        self.business_mapping_manager.business_deleted.connect(self._on_business_changed)
+        self.business_mapping_manager.keyword_added.connect(self._on_business_changed)
+        self.business_mapping_manager.keyword_updated.connect(self._on_business_changed)
+        self.business_mapping_manager.keyword_deleted.connect(self._on_business_changed)
         
         self.projects_tab = ProjectsTab(self.project_manager)
         self.projects_tab.projects_changed.connect(self._on_projects_changed)
@@ -66,7 +78,11 @@ class OCRMainWindow(QMainWindow):
         self.categories_tab.categories_changed.connect(self._on_categories_changed)
         self.tab_widget.addTab(self.categories_tab, tr("categories_tab.title"))
         
-        self.file_naming_tab = FileNamingTab(self.config_manager)
+        self.document_types_tab = DocumentTypesTab(self.document_type_manager)
+        self.document_types_tab.document_types_changed.connect(self._on_document_types_changed)
+        self.tab_widget.addTab(self.document_types_tab, tr("document_types_tab.title"))
+        
+        self.file_naming_tab = FileNamingTab(self.config_manager, self.document_type_manager)
         self.file_naming_tab.template_changed.connect(self._on_template_changed)
         self.tab_widget.addTab(self.file_naming_tab, tr("file_naming_tab.title"))
         
@@ -91,8 +107,9 @@ class OCRMainWindow(QMainWindow):
         self.tab_widget.setTabText(1, tr("business_keywords_tab.title"))
         self.tab_widget.setTabText(2, tr("projects_tab.title"))
         self.tab_widget.setTabText(3, tr("categories_tab.title"))
-        self.tab_widget.setTabText(4, tr("file_naming_tab.title"))
-        self.tab_widget.setTabText(5, tr("settings_tab.title"))
+        self.tab_widget.setTabText(4, tr("document_types_tab.title"))
+        self.tab_widget.setTabText(5, tr("file_naming_tab.title"))
+        self.tab_widget.setTabText(6, tr("settings_tab.title"))
         
         # Update ProjectsTab button texts
         if hasattr(self, 'projects_tab'):
@@ -115,6 +132,12 @@ class OCRMainWindow(QMainWindow):
         # Update Single PDF tab category dropdown
         if hasattr(self, 'single_pdf_tab'):
             self.single_pdf_tab.refresh_categories()
+    
+    def _on_document_types_changed(self) -> None:
+        """Handle document types changes from DocumentTypesTab."""
+        # Update Single PDF tab document type dropdown
+        if hasattr(self, 'single_pdf_tab'):
+            self.single_pdf_tab.refresh_document_types()
 
     def _on_projects_changed(self) -> None:
         """Handle project changes from ProjectsTab."""
@@ -127,6 +150,19 @@ class OCRMainWindow(QMainWindow):
         # Update Single PDF tab filename preview
         if hasattr(self, 'single_pdf_tab'):
             self.single_pdf_tab.refresh_templates()
+
+    def _on_business_changed(self) -> None:
+        """Handle business or keyword changes from BusinessMappingManager."""
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info("Business change detected - refreshing UI components")
+        
+        if hasattr(self, 'business_keywords_tab'):
+            logger.info("Refreshing business keywords tab")
+            self.business_keywords_tab.refresh_keywords()
+        if hasattr(self, 'single_pdf_tab'):
+            logger.info("Refreshing single PDF tab company dropdown")
+            self.single_pdf_tab.refresh_company_dropdown()
 
 if __name__ == "__main__":
     import sys

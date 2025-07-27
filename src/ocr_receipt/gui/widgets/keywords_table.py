@@ -18,6 +18,7 @@ class KeywordsTable(QTableWidget):
     keyword_selected = pyqtSignal(dict)  # Emitted when a keyword is selected
     keyword_double_clicked = pyqtSignal(dict)  # Emitted when a keyword is double-clicked
     selection_changed = pyqtSignal(list)  # Emitted when selection changes
+    keywords_deleted = pyqtSignal(list)  # Emitted when keywords are deleted
     
     def __init__(self, parent: QWidget = None) -> None:
         super().__init__(parent)
@@ -325,7 +326,7 @@ class KeywordsTable(QTableWidget):
             self.keyword_selected.emit(selected)
             
     def _delete_selected_keywords(self) -> None:
-        """Delete selected keywords (placeholder for now)."""
+        """Delete selected keywords and emit signal for parent to handle."""
         selected = self.get_selected_keywords()
         if selected:
             count = len(selected)
@@ -337,6 +338,4 @@ class KeywordsTable(QTableWidget):
             )
             if reply == QMessageBox.StandardButton.Yes:
                 # Emit signal for parent to handle deletion
-                for keyword in selected:
-                    # This would typically emit a signal to the parent
-                    pass 
+                self.keywords_deleted.emit(selected) 
