@@ -11,7 +11,7 @@ This test file covers:
 import pytest
 import tempfile
 import os
-from PyQt6.QtWidgets import QApplication, QMessageBox, QDialogButtonBox, QWidget
+from PyQt6.QtWidgets import QApplication, QMessageBox, QDialogButtonBox, QWidget, QDialog
 from PyQt6.QtCore import Qt
 from unittest.mock import Mock, patch
 
@@ -195,38 +195,18 @@ class TestProjectsCategoriesIntegration:
         # Verify edit button is enabled
         assert tab.edit_button.isEnabled()
         
-        # Click edit button
-        qtbot.mouseClick(tab.edit_button, Qt.MouseButton.LeftButton)
-        qtbot.wait(100)
-        
-        # The edit dialog should be created by the tab's edit button click
-        # We need to wait for it to be created and then find it
-        qtbot.wait(100)
-        
-        # Find the edit dialog among all widgets
-        edit_dialogs = []
-        def find_edit_dialogs(widget):
-            if isinstance(widget, EditProjectDialog):
-                edit_dialogs.append(widget)
-            for child in widget.findChildren(QWidget):
-                find_edit_dialogs(child)
-        
-        find_edit_dialogs(QApplication.instance())
-        assert len(edit_dialogs) == 1
-        dialog = edit_dialogs[0]
-        
-        # Modify the project details
-        dialog.name_edit.clear()
-        qtbot.keyClicks(dialog.name_edit, "Updated Project")
-        dialog.description_edit.clear()
-        qtbot.keyClicks(dialog.description_edit, "Updated description")
-        qtbot.wait(100)
-        
-        # Accept the dialog
-        button_box = dialog.findChild(QDialogButtonBox)
-        ok_button = button_box.button(QDialogButtonBox.StandardButton.Ok)
-        qtbot.mouseClick(ok_button, Qt.MouseButton.LeftButton)
-        qtbot.wait(100)
+        # Mock the dialog execution and getter methods to avoid modal issues
+        with patch('ocr_receipt.gui.dialogs.add_project_dialog.EditProjectDialog.exec') as mock_exec, \
+             patch('ocr_receipt.gui.dialogs.add_project_dialog.EditProjectDialog.get_project_name') as mock_get_name, \
+             patch('ocr_receipt.gui.dialogs.add_project_dialog.EditProjectDialog.get_project_description') as mock_get_desc:
+            
+            mock_exec.return_value = QDialog.DialogCode.Accepted
+            mock_get_name.return_value = "Updated Project"
+            mock_get_desc.return_value = "Updated description"
+            
+            # Click edit button
+            qtbot.mouseClick(tab.edit_button, Qt.MouseButton.LeftButton)
+            qtbot.wait(100)
         
         # Verify the project was updated
         updated_project = project_manager.get_project_by_id(project_id)
@@ -252,40 +232,20 @@ class TestProjectsCategoriesIntegration:
         # Verify edit button is enabled
         assert tab.edit_button.isEnabled()
         
-        # Click edit button
-        qtbot.mouseClick(tab.edit_button, Qt.MouseButton.LeftButton)
-        qtbot.wait(100)
-        
-        # The edit dialog should be created by the tab's edit button click
-        # We need to wait for it to be created and then find it
-        qtbot.wait(100)
-        
-        # Find the edit dialog among all widgets
-        edit_dialogs = []
-        def find_edit_dialogs(widget):
-            if isinstance(widget, EditCategoryDialog):
-                edit_dialogs.append(widget)
-            for child in widget.findChildren(QWidget):
-                find_edit_dialogs(child)
-        
-        find_edit_dialogs(QApplication.instance())
-        assert len(edit_dialogs) == 1
-        dialog = edit_dialogs[0]
-        
-        # Modify the category details
-        dialog.name_edit.clear()
-        qtbot.keyClicks(dialog.name_edit, "Updated Category")
-        dialog.code_edit.clear()
-        qtbot.keyClicks(dialog.code_edit, "UC")
-        dialog.description_edit.clear()
-        qtbot.keyClicks(dialog.description_edit, "Updated description")
-        qtbot.wait(100)
-        
-        # Accept the dialog
-        button_box = dialog.findChild(QDialogButtonBox)
-        ok_button = button_box.button(QDialogButtonBox.StandardButton.Ok)
-        qtbot.mouseClick(ok_button, Qt.MouseButton.LeftButton)
-        qtbot.wait(100)
+        # Mock the dialog execution and getter methods to avoid modal issues
+        with patch('ocr_receipt.gui.dialogs.add_category_dialog.EditCategoryDialog.exec') as mock_exec, \
+             patch('ocr_receipt.gui.dialogs.add_category_dialog.EditCategoryDialog.get_category_name') as mock_get_name, \
+             patch('ocr_receipt.gui.dialogs.add_category_dialog.EditCategoryDialog.get_category_description') as mock_get_desc, \
+             patch('ocr_receipt.gui.dialogs.add_category_dialog.EditCategoryDialog.get_category_code') as mock_get_code:
+            
+            mock_exec.return_value = QDialog.DialogCode.Accepted
+            mock_get_name.return_value = "Updated Category"
+            mock_get_desc.return_value = "Updated description"
+            mock_get_code.return_value = "UC"
+            
+            # Click edit button
+            qtbot.mouseClick(tab.edit_button, Qt.MouseButton.LeftButton)
+            qtbot.wait(100)
         
         # Verify the category was updated
         updated_category = category_manager.get_category_by_id(category_id)
