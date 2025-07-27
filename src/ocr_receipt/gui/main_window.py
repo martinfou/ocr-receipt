@@ -5,6 +5,7 @@ from .single_pdf_tab import SinglePDFTab
 from .business_keywords_tab import BusinessKeywordsTab
 from .projects_tab import ProjectsTab
 from .categories_tab import CategoriesTab
+from .file_naming_tab import FileNamingTab
 from .settings_tab import SettingsTab
 from ocr_receipt.business.database_manager import DatabaseManager
 from ocr_receipt.business.business_mapping_manager import BusinessMappingManager
@@ -49,7 +50,8 @@ class OCRMainWindow(QMainWindow):
         self.single_pdf_tab = SinglePDFTab(
             business_mapping_manager=self.business_mapping_manager,
             project_manager=self.project_manager,
-            category_manager=self.category_manager
+            category_manager=self.category_manager,
+            config_manager=self.config_manager
         )
         self.tab_widget.addTab(self.single_pdf_tab, tr("single_pdf_tab.title"))
         
@@ -63,7 +65,10 @@ class OCRMainWindow(QMainWindow):
         self.categories_tab = CategoriesTab(self.category_manager)
         self.categories_tab.categories_changed.connect(self._on_categories_changed)
         self.tab_widget.addTab(self.categories_tab, tr("categories_tab.title"))
-        self._add_tab("File Naming", "File Naming Tab")
+        
+        self.file_naming_tab = FileNamingTab(self.config_manager)
+        self.file_naming_tab.template_changed.connect(self._on_template_changed)
+        self.tab_widget.addTab(self.file_naming_tab, tr("file_naming_tab.title"))
         
         # Create settings tab with language change signal connection
         self.settings_tab = SettingsTab(self.config_manager)
@@ -86,6 +91,7 @@ class OCRMainWindow(QMainWindow):
         self.tab_widget.setTabText(1, tr("business_keywords_tab.title"))
         self.tab_widget.setTabText(2, tr("projects_tab.title"))
         self.tab_widget.setTabText(3, tr("categories_tab.title"))
+        self.tab_widget.setTabText(4, tr("file_naming_tab.title"))
         self.tab_widget.setTabText(5, tr("settings_tab.title"))
         
         # Update ProjectsTab button texts
@@ -99,6 +105,10 @@ class OCRMainWindow(QMainWindow):
         # Update CategoriesTab button texts
         if hasattr(self, 'categories_tab'):
             self.categories_tab.update_language()
+        
+        # Update FileNamingTab button texts
+        if hasattr(self, 'file_naming_tab'):
+            self.file_naming_tab.update_language()
 
     def _on_categories_changed(self) -> None:
         """Handle category changes from CategoriesTab."""
@@ -111,6 +121,12 @@ class OCRMainWindow(QMainWindow):
         # Update Single PDF tab project dropdown
         if hasattr(self, 'single_pdf_tab'):
             self.single_pdf_tab.refresh_projects()
+
+    def _on_template_changed(self, template: str) -> None:
+        """Handle template changes from FileNamingTab."""
+        # Update Single PDF tab filename preview
+        if hasattr(self, 'single_pdf_tab'):
+            self.single_pdf_tab.refresh_templates()
 
 if __name__ == "__main__":
     import sys

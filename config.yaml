@@ -5,6 +5,22 @@ app:
 database:
   path: ocr_receipts.db
   timeout: 30
+file_naming:
+  active_template: default
+  date_format: '%Y-%m-%d'
+  include_invoice_number: true
+  template: '{project}_{documentType}_{date}_{company}_{total}'
+  templates:
+    default:
+      active: true
+      description: Standard template with project, date, company, and total
+      name: Default Template
+      template: '{project}_{documentType}_{date}_{company}_{total}'
+    testtemplate:
+      active: false
+      description: null
+      name: testtemplate
+      template: '{project}'
 gui:
   auto_save: true
   show_preview: true

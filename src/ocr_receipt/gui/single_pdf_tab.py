@@ -17,13 +17,17 @@ class SinglePDFTab(QWidget):
     Advanced Single PDF tab with PDF preview, project settings, extracted data, file naming preview, and action buttons.
     Now uses a QSplitter with a QGridLayout for true vertical alignment of navigation and project settings.
     """
-    def __init__(self, business_mapping_manager, project_manager, category_manager, parent=None):
+    def __init__(self, business_mapping_manager, project_manager, category_manager, config_manager=None, parent=None):
         super().__init__(parent)
         self.business_mapping_manager = business_mapping_manager
         self.project_manager = project_manager
         self.category_manager = category_manager
+        self.config_manager = config_manager
+        self.templates = {}
+        self.active_template_id = None
         self._setup_ui()
         self._setup_connections()
+        self._load_templates()
 
     def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
@@ -138,6 +142,12 @@ class SinglePDFTab(QWidget):
         project_layout.addRow("Project:", self.project_combo)
         
         project_layout.addRow("Document Type:", self.document_type_combo)
+        
+        # Template dropdown
+        self.template_combo = QComboBox()
+        self.template_combo.addItem("Default Template", "default")
+        project_layout.addRow("Template:", self.template_combo)
+        
         project_layout.addRow(self.interactive_mode_checkbox)
         project_layout.addRow("Confidence Threshold:", conf_layout)
         right_grid.addWidget(project_group, 1, 0)
@@ -173,6 +183,9 @@ class SinglePDFTab(QWidget):
         self.browse_button.clicked.connect(self._on_browse_file)
         self.reprocess_button.clicked.connect(self._on_reprocess_file)
         self.confidence_slider.valueChanged.connect(self._on_confidence_changed)
+        self.template_combo.currentTextChanged.connect(self._on_template_changed)
+        self.document_type_combo.currentTextChanged.connect(self._on_template_changed)
+        self.project_combo.currentTextChanged.connect(self._on_template_changed)
         # TODO: Connect other signals for interactive features
 
     def _on_reprocess_file(self) -> None:
@@ -244,7 +257,17 @@ class SinglePDFTab(QWidget):
 
     def _on_confidence_changed(self, value: int) -> None:
         self.confidence_label.setText(f"{value}%")
-        # TODO: Update confidence threshold logic 
+        # TODO: Update confidence threshold logic
+
+    def _on_template_changed(self) -> None:
+        """Handle template selection changes."""
+        # Update active template ID
+        template_id = self.template_combo.currentData()
+        if template_id:
+            self.active_template_id = template_id
+        
+        # Update filename preview
+        self._update_filename_preview() 
 
     def _populate_projects_and_categories(self):
         # Get project and category names from managers
@@ -392,4 +415,130 @@ class SinglePDFTab(QWidget):
         
         # Wait a bit and then hide
         from PyQt6.QtCore import QTimer
-        QTimer.singleShot(3000, lambda: self.show_processing_stage("complete")) 
+        QTimer.singleShot(3000, lambda: self.show_processing_stage("complete"))
+
+    def _load_templates(self) -> None:
+        """Load templates from configuration."""
+        if not self.config_manager:
+            return
+            
+        try:
+            # Load templates dictionary
+            self.templates = self.config_manager.get('file_naming.templates', {})
+            
+            # Load active template ID
+            self.active_template_id = self.config_manager.get('file_naming.active_template', 'default')
+            
+            # Update template combo box
+            self._update_template_combo()
+            
+        except Exception as e:
+            logger.error(f"Failed to load templates: {e}")
+
+    def _update_template_combo(self) -> None:
+        """Update the template combo box with available templates."""
+        self.template_combo.clear()
+        
+        if not self.templates:
+            self.template_combo.addItem("Default Template", "default")
+            return
+        
+        for template_id, template_data in self.templates.items():
+            template_name = template_data.get('name', template_id)
+            self.template_combo.addItem(template_name, template_id)
+        
+        # Set active template
+        if self.active_template_id:
+            index = self.template_combo.findData(self.active_template_id)
+            if index >= 0:
+                self.template_combo.setCurrentIndex(index)
+
+    def _update_filename_preview(self) -> None:
+        """Update the filename preview based on current template and data."""
+        try:
+            if not self.templates or not self.active_template_id:
+                self.filename_preview.setText("No template available")
+                return
+            
+            template_data = self.templates.get(self.active_template_id)
+            if not template_data:
+                self.filename_preview.setText("Template not found")
+                return
+            
+            template = template_data.get('template', '')
+            if not template:
+                self.filename_preview.setText("No template content")
+                return
+            
+            # Get current data from the form
+            data = {
+                'project': self.project_combo.currentText() or 'Q1_2024_Invoices',
+                'documentType': self.document_type_combo.currentText().lower() or 'invoice',
+                'date': '2024-01-15',  # Default date
+                'company': 'Hydro Quebec Inc',  # Default company
+                'total': '1234.56',  # Default total
+                'invoiceNumber': 'INV-2024-001',  # Default invoice number
+                'category': 'Utilities',  # Default category
+                'categoryCode': 'UTIL'  # Default category code
+            }
+            
+            # Generate filename
+            filename = self._generate_filename(template, data)
+            self.filename_preview.setText(f"{filename}.pdf")
+            
+        except Exception as e:
+            logger.error(f"Failed to update filename preview: {e}")
+            self.filename_preview.setText("Error generating preview")
+
+    def _generate_filename(self, template: str, data: dict) -> str:
+        """Generate filename from template and data."""
+        try:
+            # Replace variables in template
+            result = template
+            for var_name, value in data.items():
+                placeholder = f"{{{var_name}}}"
+                if placeholder in result:
+                    # Clean the value for filename use
+                    clean_value = self._clean_filename_part(value)
+                    result = result.replace(placeholder, clean_value)
+            
+            # Clean up any remaining placeholders
+            import re
+            result = re.sub(r'\{[^}]+\}', '', result)
+            
+            # Clean up separators
+            result = re.sub(r'[_-]+', '_', result)
+            result = result.strip('_-')
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Failed to generate filename: {e}")
+            return "error_generating_filename"
+
+    def _clean_filename_part(self, value: str) -> str:
+        """Clean a value for use in filename."""
+        if not value:
+            return ""
+        
+        # Replace invalid filename characters
+        import re
+        # Remove or replace invalid characters
+        cleaned = re.sub(r'[<>:"/\\|?*]', '_', value)
+        # Replace spaces with underscores
+        cleaned = re.sub(r'\s+', '_', cleaned)
+        # Remove multiple underscores
+        cleaned = re.sub(r'_+', '_', cleaned)
+        # Remove leading/trailing underscores
+        cleaned = cleaned.strip('_')
+        
+        return cleaned
+
+    def refresh_templates(self) -> None:
+        """Refresh templates from configuration."""
+        self._load_templates()
+        self._update_filename_preview()
+
+    def update_filename_preview(self) -> None:
+        """Public method to update filename preview."""
+        self._update_filename_preview() 
