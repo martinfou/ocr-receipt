@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QLineEdit, QPushButton, QLabel, QComboBox, QCheckBox, QSlider, QFormLayout, QFrame, QSplitter, QGridLayout, QProgressBar
+    QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QLineEdit, QPushButton, QLabel, QComboBox, QCheckBox, QSlider, QFormLayout, QFrame, QSplitter, QGridLayout, QProgressBar, QMessageBox
 )
 from .widgets.data_panel import DataPanel
 from .widgets.pdf_preview import PDFPreview
@@ -7,8 +7,10 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QIcon
 from ocr_receipt.config import ConfigManager
 from ocr_receipt.parsers.invoice_parser import InvoiceParser, InvoiceParserError
+from ocr_receipt.utils.filename_utils import FilenameUtils
 from pathlib import Path
 import logging
+from typing import Dict
 
 logger = logging.getLogger(__name__)
 
@@ -112,10 +114,12 @@ class SinglePDFTab(QWidget):
         actions = QHBoxLayout()
         self.save_button = QPushButton("💾 Save")
         self.rename_button = QPushButton("🖉 Rename File")
-        self.export_button = QPushButton("📊 Export")
+        self.browse_rename_button = QPushButton("📁 Browse")
+        self.raw_data_button = QPushButton("📄 Raw Data")
         actions.addWidget(self.save_button)
         actions.addWidget(self.rename_button)
-        actions.addWidget(self.export_button)
+        actions.addWidget(self.browse_rename_button)
+        actions.addWidget(self.raw_data_button)
         actions_widget = QWidget()
         actions_widget.setLayout(actions)
         right_grid.addWidget(actions_widget, 0, 0)
@@ -169,6 +173,7 @@ class SinglePDFTab(QWidget):
         filename_layout = QVBoxLayout(filename_group)
         self.filename_preview = QLabel("Q1_2024_invoice_2024-01-15_hydro_quebec_$1234.56.pdf")
         filename_layout.addWidget(self.filename_preview)
+        
         right_grid.addWidget(filename_group, 3, 0)
 
         right_grid.setRowStretch(4, 1)
@@ -182,10 +187,25 @@ class SinglePDFTab(QWidget):
     def _setup_connections(self) -> None:
         self.browse_button.clicked.connect(self._on_browse_file)
         self.reprocess_button.clicked.connect(self._on_reprocess_file)
+        self.browse_rename_button.clicked.connect(self._on_browse_rename)
+        self.rename_button.clicked.connect(self._on_rename_file)
+        self.raw_data_button.clicked.connect(self._on_raw_data)
         self.confidence_slider.valueChanged.connect(self._on_confidence_changed)
         self.template_combo.currentTextChanged.connect(self._on_template_changed)
         self.document_type_combo.currentTextChanged.connect(self._on_template_changed)
         self.project_combo.currentTextChanged.connect(self._on_template_changed)
+        
+        # Connect data panel fields for live filename preview updates
+        if hasattr(self.data_panel, 'company_edit'):
+            self.data_panel.company_edit.textChanged.connect(self._on_template_changed)
+        if hasattr(self.data_panel, 'total_edit'):
+            self.data_panel.total_edit.textChanged.connect(self._on_template_changed)
+        if hasattr(self.data_panel, 'date_edit'):
+            self.data_panel.date_edit.textChanged.connect(self._on_template_changed)
+        if hasattr(self.data_panel, 'invoice_number_edit'):
+            self.data_panel.invoice_number_edit.textChanged.connect(self._on_template_changed)
+        if hasattr(self.data_panel, 'category_combo'):
+            self.data_panel.category_combo.currentTextChanged.connect(self._on_template_changed)
         # TODO: Connect other signals for interactive features
 
     def _on_reprocess_file(self) -> None:
@@ -208,6 +228,7 @@ class SinglePDFTab(QWidget):
         """Process PDF file with visual feedback."""
         from PyQt6.QtWidgets import QMessageBox
         from PyQt6.QtCore import QTimer
+        from ocr_receipt.utils.filename_utils import PDFMetadataHandler
         
         try:
             # Stage 1: Loading
@@ -215,6 +236,12 @@ class SinglePDFTab(QWidget):
             
             # Load PDF preview (this might take some time)
             self.pdf_preview.load_pdf(file_path)
+            
+            # Check for embedded variables in PDF metadata
+            embedded_variables = PDFMetadataHandler.load_variables_from_metadata(file_path)
+            if embedded_variables:
+                logger.info(f"Found embedded variables in PDF: {embedded_variables}")
+                self._load_embedded_variables(embedded_variables)
             
             # Stage 2: Converting to images
             self.show_processing_stage("converting")
@@ -254,6 +281,176 @@ class SinglePDFTab(QWidget):
         except Exception as e:
             self.show_processing_stage("error")
             QMessageBox.critical(self, "Error", f"Unexpected error: {e}")
+
+    def _load_embedded_variables(self, variables: Dict[str, str]) -> None:
+        """
+        Load embedded variables from PDF metadata into form fields.
+        
+        Args:
+            variables: Dictionary of variables from PDF metadata
+        """
+        try:
+            # Update project if available
+            if 'project' in variables:
+                project_name = variables['project']
+                index = self.project_combo.findText(project_name)
+                if index >= 0:
+                    self.project_combo.setCurrentIndex(index)
+                else:
+                    # Add the project if it doesn't exist
+                    self.project_combo.addItem(project_name)
+                    self.project_combo.setCurrentText(project_name)
+            
+            # Update document type if available
+            if 'documentType' in variables:
+                doc_type = variables['documentType']
+                index = self.document_type_combo.findText(doc_type)
+                if index >= 0:
+                    self.document_type_combo.setCurrentIndex(index)
+            
+            # Update category if available
+            if 'category' in variables:
+                category_name = variables['category']
+                index = self.data_panel.category_combo.findText(category_name)
+                if index >= 0:
+                    self.data_panel.category_combo.setCurrentIndex(index)
+            
+            # Update category code if available
+            if 'categoryCode' in variables:
+                category_code = variables['categoryCode']
+                # Assuming there's a category code field in the data panel
+                if hasattr(self.data_panel, 'category_code_edit'):
+                    self.data_panel.category_code_edit.setText(category_code)
+            
+            # Update filename preview with embedded data
+            self._update_filename_preview()
+            
+            logger.info(f"Successfully loaded embedded variables: {variables}")
+            
+        except Exception as e:
+            logger.error(f"Failed to load embedded variables: {e}")
+
+    def _on_browse_rename(self) -> None:
+        """Handle browse for selecting a new PDF file."""
+        from PyQt6.QtWidgets import QFileDialog, QMessageBox
+        
+        # Open file dialog to select a PDF file
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, 
+            "Select PDF File", 
+            "", 
+            "PDF Files (*.pdf)"
+        )
+        
+        if file_path:
+            # Update the file path in the UI
+            self.file_path_edit.setText(file_path)
+            # Process the new PDF file
+            self._process_pdf_file(file_path)
+
+    def _on_rename_file(self) -> None:
+        """Handle the rename file action."""
+        from PyQt6.QtWidgets import QFileDialog, QMessageBox
+        from PyQt6.QtCore import QTimer
+        
+        current_file_path = self.file_path_edit.text()
+        if not current_file_path:
+            QMessageBox.warning(self, "No PDF File Selected", "Please select a PDF file to rename.")
+            return
+        
+        new_file_name, _ = QFileDialog.getSaveFileName(
+            self,
+            "Rename PDF File",
+            current_file_path,
+            "PDF Files (*.pdf)"
+        )
+        
+        if new_file_name:
+            try:
+                # Ensure the new path is a PDF file
+                if not new_file_name.lower().endswith('.pdf'):
+                    new_file_name += '.pdf'
+                
+                # Check if the new path is different from the current one
+                if Path(new_file_name).resolve() == Path(current_file_path).resolve():
+                    QMessageBox.information(self, "No Change", "The new file name is the same as the current file name.")
+                    return
+                
+                # Rename the file
+                Path(current_file_path).rename(new_file_name)
+                
+                # Update the file path in the UI
+                self.file_path_edit.setText(new_file_name)
+                
+                # Re-process the file with the new path
+                self._process_pdf_file(new_file_name)
+                
+                QMessageBox.information(self, "File Renamed", f"File '{current_file_path}' renamed to '{new_file_name}'.")
+                
+            except FileNotFoundError:
+                QMessageBox.warning(self, "File Not Found", f"The file '{current_file_path}' was not found.")
+            except Exception as e:
+                QMessageBox.critical(self, "Error Renaming File", f"Failed to rename file: {e}")
+
+    def _on_raw_data(self) -> None:
+        """Display raw extracted text from the PDF."""
+        from PyQt6.QtWidgets import QDialog, QVBoxLayout, QTextEdit, QPushButton, QHBoxLayout, QLabel
+        
+        # Get current file path
+        file_path = self.file_path_edit.text()
+        if not file_path:
+            QMessageBox.warning(self, "No PDF File Selected", "Please select a PDF file first to view raw data.")
+            return
+        
+        try:
+            # Extract text from PDF using OCR engine
+            from ocr_receipt.core.ocr_engine import OCREngine
+            from ocr_receipt.core.text_extractor import TextExtractor
+            
+            # Create OCR engine and text extractor
+            config = ConfigManager()._config
+            ocr_engine = OCREngine(config)
+            text_extractor = TextExtractor(ocr_engine)
+            
+            # Extract text from PDF
+            extracted_text = text_extractor.extract_text_from_pdf(file_path)
+            
+            if not extracted_text:
+                QMessageBox.information(self, "No Text Found", "No text could be extracted from the PDF.")
+                return
+            
+            # Create dialog to display raw text
+            dialog = QDialog(self)
+            dialog.setWindowTitle("Raw Extracted Text")
+            dialog.setMinimumSize(800, 600)
+            
+            layout = QVBoxLayout(dialog)
+            
+            # Add header
+            header_label = QLabel(f"Raw extracted text from: {Path(file_path).name}")
+            header_label.setStyleSheet("font-weight: bold; font-size: 14px; margin-bottom: 10px;")
+            layout.addWidget(header_label)
+            
+            # Add text display
+            text_edit = QTextEdit()
+            text_edit.setPlainText(extracted_text)
+            text_edit.setReadOnly(True)
+            layout.addWidget(text_edit)
+            
+            # Add close button
+            button_layout = QHBoxLayout()
+            close_button = QPushButton("Close")
+            close_button.clicked.connect(dialog.accept)
+            button_layout.addStretch()
+            button_layout.addWidget(close_button)
+            layout.addLayout(button_layout)
+            
+            # Show dialog
+            dialog.exec()
+            
+        except Exception as e:
+            logger.error(f"Error displaying raw data: {e}")
+            QMessageBox.critical(self, "Error", f"Failed to extract text from PDF: {e}")
 
     def _on_confidence_changed(self, value: int) -> None:
         self.confidence_label.setText(f"{value}%")
@@ -363,7 +560,7 @@ class SinglePDFTab(QWidget):
         self.reprocess_button.setEnabled(False)
         self.save_button.setEnabled(False)
         self.rename_button.setEnabled(False)
-        self.export_button.setEnabled(False)
+        self.raw_data_button.setEnabled(False)
 
     def _enable_controls_after_processing(self):
         """Re-enable controls after processing."""
@@ -371,7 +568,7 @@ class SinglePDFTab(QWidget):
         self.reprocess_button.setEnabled(True)
         self.save_button.setEnabled(True)
         self.rename_button.setEnabled(True)
-        self.export_button.setEnabled(True)
+        self.raw_data_button.setEnabled(True)
 
     def process_pdf_with_feedback(self, file_path: str):
         """Process PDF with visual feedback at each stage."""
@@ -474,16 +671,16 @@ class SinglePDFTab(QWidget):
             data = {
                 'project': self.project_combo.currentText() or 'Q1_2024_Invoices',
                 'documentType': self.document_type_combo.currentText().lower() or 'invoice',
-                'date': '2024-01-15',  # Default date
-                'company': 'Hydro Quebec Inc',  # Default company
-                'total': '1234.56',  # Default total
-                'invoiceNumber': 'INV-2024-001',  # Default invoice number
-                'category': 'Utilities',  # Default category
+                'date': self.data_panel.date_edit.text() if hasattr(self.data_panel, 'date_edit') else '2024-01-15',
+                'company': self.data_panel.company_edit.text() if hasattr(self.data_panel, 'company_edit') else 'Hydro Quebec Inc',
+                'total': self.data_panel.total_edit.text() if hasattr(self.data_panel, 'total_edit') else '1234.56',
+                'invoiceNumber': self.data_panel.invoice_number_edit.text() if hasattr(self.data_panel, 'invoice_number_edit') else 'INV-2024-001',
+                'category': self.data_panel.category_combo.currentText() if hasattr(self.data_panel, 'category_combo') else 'Utilities',
                 'categoryCode': 'UTIL'  # Default category code
             }
             
             # Generate filename
-            filename = self._generate_filename(template, data)
+            filename = FilenameUtils.generate_filename(template, data)
             self.filename_preview.setText(f"{filename}.pdf")
             
         except Exception as e:
@@ -493,46 +690,14 @@ class SinglePDFTab(QWidget):
     def _generate_filename(self, template: str, data: dict) -> str:
         """Generate filename from template and data."""
         try:
-            # Replace variables in template
-            result = template
-            for var_name, value in data.items():
-                placeholder = f"{{{var_name}}}"
-                if placeholder in result:
-                    # Clean the value for filename use
-                    clean_value = self._clean_filename_part(value)
-                    result = result.replace(placeholder, clean_value)
-            
-            # Clean up any remaining placeholders
-            import re
-            result = re.sub(r'\{[^}]+\}', '', result)
-            
-            # Clean up separators
-            result = re.sub(r'[_-]+', '_', result)
-            result = result.strip('_-')
-            
-            return result
-            
+            return FilenameUtils.generate_filename(template, data)
         except Exception as e:
             logger.error(f"Failed to generate filename: {e}")
             return "error_generating_filename"
 
     def _clean_filename_part(self, value: str) -> str:
         """Clean a value for use in filename."""
-        if not value:
-            return ""
-        
-        # Replace invalid filename characters
-        import re
-        # Remove or replace invalid characters
-        cleaned = re.sub(r'[<>:"/\\|?*]', '_', value)
-        # Replace spaces with underscores
-        cleaned = re.sub(r'\s+', '_', cleaned)
-        # Remove multiple underscores
-        cleaned = re.sub(r'_+', '_', cleaned)
-        # Remove leading/trailing underscores
-        cleaned = cleaned.strip('_')
-        
-        return cleaned
+        return FilenameUtils.clean_filename_part(value)
 
     def refresh_templates(self) -> None:
         """Refresh templates from configuration."""

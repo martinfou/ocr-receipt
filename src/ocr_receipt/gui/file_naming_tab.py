@@ -11,6 +11,7 @@ from PyQt6.QtGui import QFont
 from typing import Optional, Dict, Any, List
 from ..config import ConfigManager
 from ..utils.translation_helper import tr
+from ..utils.filename_utils import FilenameUtils
 from .dialogs.template_dialog import TemplateDialog
 import logging
 
@@ -427,7 +428,7 @@ class FileNamingTab(QWidget):
             }
             
             # Generate preview
-            preview = self._generate_filename(template, sample_data)
+            preview = FilenameUtils.generate_filename(template, sample_data)
             
             # Create multiple examples
             examples = []
@@ -438,14 +439,14 @@ class FileNamingTab(QWidget):
             sample_data2['company'] = "Royal Bank"
             sample_data2['total'] = "567.89"
             sample_data2['date'] = "2024-01-16"
-            preview2 = self._generate_filename(template, sample_data2)
+            preview2 = FilenameUtils.generate_filename(template, sample_data2)
             examples.append(f"Example 2: {preview2}.pdf")
             
             sample_data3 = sample_data.copy()
             sample_data3['company'] = "Bell Canada"
             sample_data3['total'] = "234.12"
             sample_data3['date'] = "2024-01-17"
-            preview3 = self._generate_filename(template, sample_data3)
+            preview3 = FilenameUtils.generate_filename(template, sample_data3)
             examples.append(f"Example 3: {preview3}.pdf")
             
             self.preview_text.setPlainText('\n'.join(examples))
@@ -457,68 +458,19 @@ class FileNamingTab(QWidget):
     def _generate_filename(self, template: str, data: Dict[str, str]) -> str:
         """Generate filename from template and data."""
         try:
-            # Replace variables in template
-            result = template
-            for var_name, value in data.items():
-                placeholder = f"{{{var_name}}}"
-                if placeholder in result:
-                    # Clean the value for filename use
-                    clean_value = self._clean_filename_part(value)
-                    result = result.replace(placeholder, clean_value)
-            
-            # Clean up any remaining placeholders
-            import re
-            result = re.sub(r'\{[^}]+\}', '', result)
-            
-            # Clean up separators
-            result = re.sub(r'[_-]+', '_', result)
-            result = result.strip('_-')
-            
-            return result
-            
+            return FilenameUtils.generate_filename(template, data)
         except Exception as e:
             logger.error(f"Failed to generate filename: {e}")
             return "error_generating_filename"
 
     def _clean_filename_part(self, value: str) -> str:
         """Clean a value for use in filename."""
-        if not value:
-            return ""
-        
-        # Replace invalid filename characters
-        import re
-        # Remove or replace invalid characters
-        cleaned = re.sub(r'[<>:"/\\|?*]', '_', value)
-        # Replace spaces with underscores
-        cleaned = re.sub(r'\s+', '_', cleaned)
-        # Remove multiple underscores
-        cleaned = re.sub(r'_+', '_', cleaned)
-        # Remove leading/trailing underscores
-        cleaned = cleaned.strip('_')
-        
-        return cleaned
+        return FilenameUtils.clean_filename_part(value)
 
     def _validate_template(self, template: str) -> bool:
         """Validate the template format."""
-        if not template:
-            return False
-        
-        # Check for at least one variable
-        import re
-        variables = re.findall(r'\{[^}]+\}', template)
-        if not variables:
-            return False
-        
-        # Check for valid variable names
-        valid_vars = {'project', 'documentType', 'date', 'company', 'total', 
-                     'invoiceNumber', 'category', 'categoryCode'}
-        
-        for var in variables:
-            var_name = var.strip('{}')
-            if var_name not in valid_vars:
-                return False
-        
-        return True
+        is_valid, _ = FilenameUtils.validate_template(template)
+        return is_valid
 
     def _show_help(self) -> None:
         """Show help dialog for template variables."""
