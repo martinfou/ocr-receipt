@@ -10,7 +10,6 @@ This test file covers:
 import pytest
 import tempfile
 import os
-from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import Qt
 
 from ocr_receipt.gui.business_keywords_tab import BusinessKeywordsTab
@@ -24,7 +23,7 @@ class TestTabDialogIntegration:
     """Test integration between tabs and dialogs."""
     
     @pytest.fixture
-    def business_keywords_tab(self, qtbot):
+    def business_keywords_tab(self, qapp, qtbot):
         """Create a BusinessKeywordsTab for testing."""
         # Create temporary database
         with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as tmp:
@@ -157,7 +156,7 @@ class TestTabDialogErrorHandling:
     """Test error handling in tab-dialog integration."""
     
     @pytest.fixture
-    def business_keywords_tab(self, qtbot):
+    def business_keywords_tab(self, qapp, qtbot):
         """Create a BusinessKeywordsTab for testing."""
         # Create temporary database
         with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as tmp:
@@ -226,7 +225,7 @@ class TestTabDialogErrorHandling:
 class TestTabDialogAccessibility:
     """Test accessibility features in tab-dialog integration."""
     
-    def test_dialog_keyboard_navigation(self, qtbot):
+    def test_dialog_keyboard_navigation(self, qapp, qtbot):
         """Test keyboard navigation in dialogs."""
         dialog = AddBusinessDialog()
         qtbot.addWidget(dialog)
@@ -246,7 +245,7 @@ class TestTabDialogAccessibility:
         assert not ok_button.isEnabled()  # No text entered yet
         assert cancel_button.isEnabled()
     
-    def test_dialog_modal_behavior(self, qtbot):
+    def test_dialog_modal_behavior(self, qapp, qtbot):
         """Test that dialogs behave as modal windows."""
         dialog = AddBusinessDialog()
         qtbot.addWidget(dialog)
@@ -254,7 +253,7 @@ class TestTabDialogAccessibility:
         # Test that dialog is modal
         assert dialog.isModal()
     
-    def test_dialog_default_focus(self, qtbot):
+    def test_dialog_default_focus(self, qapp, qtbot):
         """Test that dialogs have proper default focus."""
         dialog = AddBusinessDialog()
         qtbot.addWidget(dialog)

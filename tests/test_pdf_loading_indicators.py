@@ -11,7 +11,6 @@ This test file covers:
 import pytest
 import tempfile
 import os
-from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import Qt
 
 from ocr_receipt.gui.single_pdf_tab import SinglePDFTab
@@ -25,7 +24,7 @@ class TestPDFLoadingIndicators:
     """Test the PDF loading visual indicators."""
     
     @pytest.fixture
-    def single_pdf_tab(self, qtbot):
+    def single_pdf_tab(self, qapp, qtbot):
         """Create a SinglePDFTab for testing."""
         # Create temporary database
         with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as tmp:
@@ -249,7 +248,7 @@ class TestPDFProcessingIntegration:
     """Test integration of visual indicators with PDF processing."""
     
     @pytest.fixture
-    def single_pdf_tab(self, qtbot):
+    def single_pdf_tab(self, qapp, qtbot):
         """Create a SinglePDFTab for testing."""
         # Create temporary database
         with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as tmp:

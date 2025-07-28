@@ -3,7 +3,7 @@ Tests for the SettingsTab class.
 """
 import pytest
 from unittest.mock import Mock, patch, MagicMock
-from PyQt6.QtWidgets import QApplication, QMessageBox
+from PyQt6.QtWidgets import QMessageBox
 from PyQt6.QtCore import Qt
 from PyQt6.QtTest import QTest
 
@@ -29,7 +29,7 @@ class TestSettingsTab:
         return config
     
     @pytest.fixture
-    def settings_tab(self, qtbot, config_manager):
+    def settings_tab(self, qapp, qtbot, config_manager):
         """Create a SettingsTab instance for testing."""
         tab = SettingsTab(config_manager)
         qtbot.addWidget(tab)

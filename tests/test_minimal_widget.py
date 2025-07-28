@@ -1,14 +1,9 @@
 import pytest
-from PyQt6.QtWidgets import QApplication
 from ocr_receipt.gui.main_window import OCRMainWindow
 from ocr_receipt.gui.widgets.data_panel import DataPanel
 from ocr_receipt.gui.widgets.editable_combo_box import EditableComboBox
 
-@pytest.fixture
-def app(qtbot):
-    return QApplication.instance() or QApplication([])
-
-def test_main_window_launch(qtbot, app):
+def test_main_window_launch(qtbot, qapp):
     # Set language to English for consistent test results
     from ocr_receipt.utils.translation_helper import set_language
     set_language('en')
@@ -32,7 +27,7 @@ def test_main_window_launch(qtbot, app):
         assert window.windowTitle() == "OCR Invoice Parser"
         # assert window.isVisible()  # This assertion is no longer valid without show()
 
-def test_main_window_tabs(qtbot, app):
+def test_main_window_tabs(qtbot, qapp):
     # Set language to English for consistent test results
     from ocr_receipt.utils.translation_helper import set_language
     set_language('en')
@@ -66,7 +61,7 @@ def test_main_window_tabs(qtbot, app):
             assert tab in actual_tabs
 
 
-def test_data_panel_fields(qtbot, app):
+def test_data_panel_fields(qtbot, qapp):
     # Create a mock business mapping manager
     from unittest.mock import Mock
     mock_business_manager = Mock()
@@ -96,7 +91,7 @@ def test_data_panel_fields(qtbot, app):
     assert panel.date_edit.text() == "2024-12-31"
     assert panel.invoice_number_edit.text() == "INV-999"
 
-def test_editable_combo_box(qtbot, app):
+def test_editable_combo_box(qtbot, qapp):
     combo = EditableComboBox()
     qtbot.addWidget(combo)
     combo.set_items(["A", "B", "C"])

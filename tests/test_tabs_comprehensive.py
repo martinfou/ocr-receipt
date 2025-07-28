@@ -11,7 +11,7 @@ This test file covers:
 import pytest
 import tempfile
 import os
-from PyQt6.QtWidgets import QApplication, QTabWidget
+from PyQt6.QtWidgets import QTabWidget
 from PyQt6.QtCore import Qt
 
 from ocr_receipt.gui.main_window import OCRMainWindow
@@ -27,7 +27,7 @@ class TestMainWindowTabs:
     """Test the main window tab system."""
     
     @pytest.fixture
-    def main_window(self, qtbot):
+    def main_window(self, qapp, qtbot):
         """Create a main window for testing."""
         # Mock the config to return English language
         from unittest.mock import patch
@@ -86,7 +86,7 @@ class TestSinglePDFTab:
     """Test the Single PDF tab functionality."""
     
     @pytest.fixture
-    def single_pdf_tab(self, qtbot):
+    def single_pdf_tab(self, qapp, qtbot):
         """Create a SinglePDFTab for testing."""
         # Create temporary database
         with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as tmp:
@@ -164,7 +164,7 @@ class TestBusinessKeywordsTab:
     """Test the Business Keywords tab functionality."""
     
     @pytest.fixture
-    def business_keywords_tab(self, qtbot):
+    def business_keywords_tab(self, qapp, qtbot):
         """Create a BusinessKeywordsTab for testing."""
         # Create temporary database
         with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as tmp:
@@ -225,7 +225,7 @@ class TestPlaceholderTabs:
     """Test the placeholder tabs (Projects, Categories, File Naming, Settings)."""
     
     @pytest.fixture
-    def main_window(self, qtbot):
+    def main_window(self, qapp, qtbot):
         """Create a main window for testing placeholder tabs."""
         window = OCRMainWindow()
         qtbot.addWidget(window)
@@ -276,7 +276,7 @@ class TestTabIntegration:
     """Test integration between tabs and main window."""
     
     @pytest.fixture
-    def main_window(self, qtbot):
+    def main_window(self, qapp, qtbot):
         """Create a main window for integration testing."""
         window = OCRMainWindow()
         qtbot.addWidget(window)

@@ -1,5 +1,4 @@
 import pytest
-from PyQt6.QtWidgets import QApplication
 from unittest.mock import Mock
 from ocr_receipt.gui.single_pdf_tab import SinglePDFTab
 from ocr_receipt.business.database_manager import DatabaseManager
@@ -9,11 +8,7 @@ from ocr_receipt.business.category_manager import CategoryManager
 from ocr_receipt.config import ConfigManager
 
 @pytest.fixture
-def app(qtbot):
-    return QApplication.instance() or QApplication([])
-
-@pytest.fixture
-def single_pdf_tab(tmp_path, qtbot, app):
+def single_pdf_tab(tmp_path, qtbot, qapp):
     # Use an in-memory SQLite DB for isolation
     db_manager = DatabaseManager(":memory:")
     # Create minimal schema for required tables

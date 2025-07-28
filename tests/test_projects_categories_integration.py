@@ -11,7 +11,7 @@ This test file covers:
 import pytest
 import tempfile
 import os
-from PyQt6.QtWidgets import QApplication, QMessageBox, QDialogButtonBox, QWidget, QDialog
+from PyQt6.QtWidgets import QDialogButtonBox, QDialog, QMessageBox
 from PyQt6.QtCore import Qt
 from unittest.mock import Mock, patch
 

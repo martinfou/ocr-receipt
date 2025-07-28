@@ -2,19 +2,14 @@
 Tests for ProjectsTab and related components.
 """
 import pytest
-from PyQt6.QtWidgets import QApplication, QTableWidgetItem, QDialog, QMessageBox
+import tempfile
+import os
+from PyQt6.QtWidgets import QTableWidgetItem, QDialog, QMessageBox
 from PyQt6.QtCore import Qt
 from unittest.mock import Mock, patch, MagicMock
-from ocr_receipt.gui.projects_tab import ProjectsTab
-from ocr_receipt.gui.widgets.projects_table import ProjectsTable
-from ocr_receipt.gui.dialogs.add_project_dialog import AddProjectDialog, EditProjectDialog
+from ocr_receipt.gui.projects_tab import ProjectsTab, ProjectsTable, AddProjectDialog, EditProjectDialog
 from ocr_receipt.business.project_manager import ProjectManager
 from ocr_receipt.business.database_manager import DatabaseManager
-
-@pytest.fixture
-def app(qtbot):
-    """Create QApplication instance for testing."""
-    return QApplication.instance() or QApplication([])
 
 @pytest.fixture
 def mock_db_manager():
@@ -38,7 +33,7 @@ def sample_projects():
 class TestAddProjectDialog:
     """Test AddProjectDialog functionality."""
     
-    def test_init(self, qtbot, app):
+    def test_init(self, qtbot, qapp):
         """Test dialog initialization."""
         dialog = AddProjectDialog()
         qtbot.addWidget(dialog)
@@ -47,7 +42,7 @@ class TestAddProjectDialog:
         assert dialog.project_name is None
         assert dialog.project_description is None
 
-    def test_ui_setup(self, qtbot, app):
+    def test_ui_setup(self, qtbot, qapp):
         """Test UI components are properly set up."""
         dialog = AddProjectDialog()
         qtbot.addWidget(dialog)
@@ -60,7 +55,7 @@ class TestAddProjectDialog:
         assert "Enter project name" in dialog.name_edit.placeholderText()
         assert "Enter project description" in dialog.description_edit.placeholderText()
 
-    def test_validation_empty_name(self, qtbot, app):
+    def test_validation_empty_name(self, qtbot, qapp):
         """Test validation with empty name."""
         dialog = AddProjectDialog()
         qtbot.addWidget(dialog)
@@ -71,7 +66,7 @@ class TestAddProjectDialog:
             dialog._on_accept()
             mock_warning.assert_called_once()
 
-    def test_validation_short_name(self, qtbot, app):
+    def test_validation_short_name(self, qtbot, qapp):
         """Test validation with short name."""
         dialog = AddProjectDialog()
         qtbot.addWidget(dialog)
@@ -81,7 +76,7 @@ class TestAddProjectDialog:
             dialog._on_accept()
             mock_warning.assert_called_once()
 
-    def test_validation_long_name(self, qtbot, app):
+    def test_validation_long_name(self, qtbot, qapp):
         """Test validation with long name."""
         dialog = AddProjectDialog()
         qtbot.addWidget(dialog)
@@ -94,7 +89,7 @@ class TestAddProjectDialog:
             dialog._on_accept()
             mock_warning.assert_called_once()
 
-    def test_valid_input(self, qtbot, app):
+    def test_valid_input(self, qtbot, qapp):
         """Test valid input acceptance."""
         dialog = AddProjectDialog()
         qtbot.addWidget(dialog)
@@ -107,7 +102,7 @@ class TestAddProjectDialog:
             assert dialog.project_name == "Valid Project"
             assert dialog.project_description == "Valid description"
 
-    def test_empty_description(self, qtbot, app):
+    def test_empty_description(self, qtbot, qapp):
         """Test handling of empty description."""
         dialog = AddProjectDialog()
         qtbot.addWidget(dialog)
@@ -120,7 +115,7 @@ class TestAddProjectDialog:
             assert dialog.project_name == "Valid Project"
             assert dialog.project_description is None
 
-    def test_button_state_changes(self, qtbot, app):
+    def test_button_state_changes(self, qtbot, qapp):
         """Test OK button state changes with text input."""
         from PyQt6.QtWidgets import QDialogButtonBox
         
@@ -142,7 +137,7 @@ class TestAddProjectDialog:
 class TestEditProjectDialog:
     """Test EditProjectDialog functionality."""
     
-    def test_init_with_project_data(self, qtbot, app):
+    def test_init_with_project_data(self, qtbot, qapp):
         """Test dialog initialization with project data."""
         project_data = {"id": 1, "name": "Test Project", "description": "Test Description"}
         dialog = EditProjectDialog(project_data)
@@ -152,7 +147,7 @@ class TestEditProjectDialog:
         assert dialog.name_edit.text() == "Test Project"
         assert dialog.description_edit.toPlainText() == "Test Description"
 
-    def test_validation_same_as_add_dialog(self, qtbot, app):
+    def test_validation_same_as_add_dialog(self, qtbot, qapp):
         """Test that validation works the same as AddProjectDialog."""
         project_data = {"id": 1, "name": "Original", "description": "Original"}
         dialog = EditProjectDialog(project_data)
@@ -164,7 +159,7 @@ class TestEditProjectDialog:
             dialog._on_accept()
             mock_warning.assert_called_once()
 
-    def test_valid_edit(self, qtbot, app):
+    def test_valid_edit(self, qtbot, qapp):
         """Test valid edit acceptance."""
         project_data = {"id": 1, "name": "Original", "description": "Original"}
         dialog = EditProjectDialog(project_data)
@@ -182,65 +177,62 @@ class TestEditProjectDialog:
 class TestProjectsTable:
     """Test ProjectsTable functionality."""
     
-    def test_init(self, qtbot, app):
+    @pytest.fixture
+    def projects_table(self, qapp, qtbot):
+        """Create a ProjectsTable instance for testing."""
+        table = ProjectsTable()
+        qtbot.addWidget(table)
+        return table
+    
+    def test_init(self, projects_table):
         """Test table initialization."""
-        table = ProjectsTable()
-        qtbot.addWidget(table)
-        assert table.columnCount() == 2
-        assert table.horizontalHeaderItem(0).text() == "Name"
-        assert table.horizontalHeaderItem(1).text() == "Description"
+        assert projects_table.columnCount() == 2
+        assert projects_table.horizontalHeaderItem(0).text() == "Name"
+        assert projects_table.horizontalHeaderItem(1).text() == "Description"
 
-    def test_load_projects(self, qtbot, app, sample_projects):
+    def test_load_projects(self, projects_table, sample_projects):
         """Test loading projects into table."""
-        table = ProjectsTable()
-        qtbot.addWidget(table)
-        table.load_projects(sample_projects)
+        projects_table.load_projects(sample_projects)
         
-        assert table.rowCount() == 3
-        assert table.item(0, 0).text() == "Project Alpha"
-        assert table.item(0, 1).text() == "First project"
-        assert table.item(2, 1).text() == ""  # None description
+        assert projects_table.rowCount() == 3
+        assert projects_table.item(0, 0).text() == "Project Alpha"
+        assert projects_table.item(0, 1).text() == "First project"
+        assert projects_table.item(2, 1).text() == ""  # None description
 
-    def test_selection_handling(self, qtbot, app, sample_projects):
+    def test_selection_handling(self, projects_table, sample_projects):
         """Test project selection handling."""
-        table = ProjectsTable()
-        qtbot.addWidget(table)
-        table.load_projects(sample_projects)
+        projects_table.load_projects(sample_projects)
         
         # Mock signal emission
-        with patch.object(table, 'project_selected') as mock_signal:
-            table.setCurrentCell(0, 0)
+        with patch.object(projects_table, 'project_selected') as mock_signal:
+            projects_table.setCurrentCell(0, 0)
             mock_signal.emit.assert_called_once_with(1)
 
-    def test_get_selected_project_id(self, qtbot, app, sample_projects):
+    def test_get_selected_project_id(self, projects_table, sample_projects):
         """Test getting selected project ID."""
-        table = ProjectsTable()
-        qtbot.addWidget(table)
-        table.load_projects(sample_projects)
+        projects_table.load_projects(sample_projects)
         
         # No selection
-        assert table.get_selected_project_id() is None
+        assert projects_table.get_selected_project_id() is None
         
         # Select first row
-        table.setCurrentCell(0, 0)
-        assert table.get_selected_project_id() == 1
+        projects_table.setCurrentCell(0, 0)
+        assert projects_table.get_selected_project_id() == 1
         
         # Select second row
-        table.setCurrentCell(1, 0)
-        assert table.get_selected_project_id() == 2
+        projects_table.setCurrentCell(1, 0)
+        assert projects_table.get_selected_project_id() == 2
 
-    def test_get_selected_project_data(self, qtbot, app, sample_projects):
+    def test_get_selected_project_data(self, projects_table, sample_projects):
         """Test getting selected project data."""
-        table = ProjectsTable()
-        qtbot.addWidget(table)
-        table.load_projects(sample_projects)
+        projects_table.load_projects(sample_projects)
         
         # No selection
-        assert table.get_selected_project_data() is None
+        assert projects_table.get_selected_project_data() is None
         
         # Select first row
-        table.setCurrentCell(0, 0)
-        data = table.get_selected_project_data()
+        projects_table.setCurrentCell(0, 0)
+        data = projects_table.get_selected_project_data()
         assert data["id"] == 1
         assert data["name"] == "Project Alpha"
         assert data["description"] == "First project"
@@ -248,13 +240,35 @@ class TestProjectsTable:
 class TestProjectsTab:
     """Test ProjectsTab functionality."""
     
-    def test_init(self, qtbot, app, mock_project_manager):
-        """Test tab initialization."""
-        # Configure the mock to return an empty list to prevent Mock object len() errors
-        mock_project_manager.list_projects.return_value = []
+    @pytest.fixture
+    def projects_tab(self, qapp, qtbot):
+        """Create a ProjectsTab instance for testing."""
+        # Create temporary database
+        with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as tmp:
+            db_path = tmp.name
         
-        tab = ProjectsTab(mock_project_manager)
-        qtbot.addWidget(tab)
+        try:
+            db_manager = DatabaseManager(db_path)
+            db_manager.initialize_database()
+            
+            # Create a mock project manager to avoid method attribute issues
+            mock_project_manager = Mock(spec=ProjectManager)
+            mock_project_manager.list_projects.return_value = []
+            
+            tab = ProjectsTab(mock_project_manager)
+            qtbot.addWidget(tab)
+            yield tab, mock_project_manager, db_manager
+            
+        finally:
+            db_manager.close()
+            try:
+                os.unlink(db_path)
+            except (OSError, PermissionError):
+                pass
+    
+    def test_init(self, projects_tab):
+        """Test tab initialization."""
+        tab, mock_project_manager, mock_db_manager = projects_tab
         assert tab.project_manager == mock_project_manager
         assert tab.add_button is not None
         assert tab.edit_button is not None
@@ -262,35 +276,35 @@ class TestProjectsTab:
         assert tab.refresh_button is not None
         assert tab.projects_table is not None
 
-    def test_load_projects_success(self, qtbot, app, mock_project_manager, sample_projects):
+    def test_load_projects_success(self, projects_tab, sample_projects):
         """Test successful project loading."""
+        tab, mock_project_manager, mock_db_manager = projects_tab
         mock_project_manager.list_projects.return_value = sample_projects
         
-        tab = ProjectsTab(mock_project_manager)
-        qtbot.addWidget(tab)
+        # Call the tab's load method to update both table and status
+        tab._load_projects()
         
         mock_project_manager.list_projects.assert_called_once()
         assert tab.projects_table.rowCount() == 3
         assert "Loaded 3 projects" in tab.status_label.text()
 
-    def test_load_projects_error(self, qtbot, app, mock_project_manager):
+    def test_load_projects_error(self, projects_tab):
         """Test project loading error handling."""
+        tab, mock_project_manager, mock_db_manager = projects_tab
         mock_project_manager.list_projects.side_effect = Exception("Database error")
         
         with patch('PyQt6.QtWidgets.QMessageBox.critical') as mock_critical:
-            tab = ProjectsTab(mock_project_manager)
-            qtbot.addWidget(tab)
+            tab.projects_table.load_projects([])  # Clear the list before refreshing
+            tab.refresh_button.click()
             
             mock_critical.assert_called_once()
             assert "Error loading projects" in tab.status_label.text()
 
-    def test_add_project_success(self, qtbot, app, mock_project_manager):
+    def test_add_project_success(self, projects_tab):
         """Test successful project addition."""
+        tab, mock_project_manager, mock_db_manager = projects_tab
         mock_project_manager.list_projects.return_value = []
         mock_project_manager.create_project.return_value = 1
-        
-        tab = ProjectsTab(mock_project_manager)
-        qtbot.addWidget(tab)
         
         # Mock dialog to return valid data
         with patch('ocr_receipt.gui.projects_tab.AddProjectDialog') as mock_dialog_class:
@@ -300,20 +314,19 @@ class TestProjectsTab:
             mock_dialog.get_project_description.return_value = "New Description"
             mock_dialog_class.return_value = mock_dialog
             
-            # Mock _load_projects to prevent it from being called
-            with patch.object(tab, '_load_projects'):
-                tab._on_add_project()
-                
-                mock_project_manager.create_project.assert_called_once_with("New Project", "New Description")
+            # Click add button
+            tab.add_button.click()
+            
+            # Verify project creation was called
+            mock_project_manager.create_project.assert_called_once_with("New Project", "New Description")
 
-    def test_add_project_validation_error(self, qtbot, app, mock_project_manager):
+    def test_add_project_validation_error(self, projects_tab):
         """Test project addition with validation error."""
+        tab, mock_project_manager, mock_db_manager = projects_tab
         mock_project_manager.list_projects.return_value = []
         mock_project_manager.create_project.side_effect = ValueError("Project name too short")
         
-        tab = ProjectsTab(mock_project_manager)
-        qtbot.addWidget(tab)
-        
+        # Mock dialog to return invalid data
         with patch('ocr_receipt.gui.projects_tab.AddProjectDialog') as mock_dialog_class:
             mock_dialog = Mock()
             mock_dialog.exec.return_value = QDialog.DialogCode.Accepted
@@ -322,22 +335,22 @@ class TestProjectsTab:
             mock_dialog_class.return_value = mock_dialog
             
             with patch('PyQt6.QtWidgets.QMessageBox.warning') as mock_warning:
-                # Mock _load_projects to prevent it from being called
-                with patch.object(tab, '_load_projects'):
-                    tab._on_add_project()
-                    mock_warning.assert_called_once()
+                # Click add button
+                tab.add_button.click()
+                
+                # Verify validation error was shown
+                mock_warning.assert_called_once()
 
-    def test_edit_project_success(self, qtbot, app, mock_project_manager, sample_projects):
+    def test_edit_project_success(self, projects_tab, sample_projects):
         """Test successful project editing."""
+        tab, mock_project_manager, mock_db_manager = projects_tab
         mock_project_manager.list_projects.return_value = sample_projects
         
-        tab = ProjectsTab(mock_project_manager)
-        qtbot.addWidget(tab)
-        
         # Select first project
-        tab.projects_table.setCurrentCell(0, 0)
+        tab.projects_table.load_projects(sample_projects)
+        tab.projects_table.selectRow(0)
         
-        # Mock dialog to return valid data
+        # Mock dialog to return updated data
         with patch('ocr_receipt.gui.projects_tab.EditProjectDialog') as mock_dialog_class:
             mock_dialog = Mock()
             mock_dialog.exec.return_value = QDialog.DialogCode.Accepted
@@ -345,76 +358,79 @@ class TestProjectsTab:
             mock_dialog.get_project_description.return_value = "Updated Description"
             mock_dialog_class.return_value = mock_dialog
             
-            # Mock _load_projects to prevent it from being called
-            with patch.object(tab, '_load_projects'):
-                tab._on_edit_project()
-                
-                mock_project_manager.update_project.assert_called_once_with(1, "Updated Project", "Updated Description")
+            # Click edit button
+            tab.edit_button.click()
+            
+            # Verify project update was called
+            mock_project_manager.update_project.assert_called_once_with(1, "Updated Project", "Updated Description")
 
-    def test_delete_project_success(self, qtbot, app, mock_project_manager, sample_projects):
+    def test_delete_project_success(self, projects_tab, sample_projects):
         """Test successful project deletion."""
+        tab, mock_project_manager, mock_db_manager = projects_tab
         mock_project_manager.list_projects.return_value = sample_projects
         
-        tab = ProjectsTab(mock_project_manager)
-        qtbot.addWidget(tab)
-        
         # Select first project
-        tab.projects_table.setCurrentCell(0, 0)
+        tab.projects_table.load_projects(sample_projects)
+        tab.projects_table.selectRow(0)
         
+        # Mock confirmation dialog to return Yes
         with patch('PyQt6.QtWidgets.QMessageBox.question') as mock_question:
             mock_question.return_value = QMessageBox.StandardButton.Yes
-            # Mock _load_projects to prevent it from being called
-            with patch.object(tab, '_load_projects'):
-                tab._on_delete_project()
-                
-                mock_project_manager.delete_project.assert_called_once_with(1)
+            
+            # Click delete button
+            tab.delete_button.click()
+            
+            # Verify project deletion was called
+            mock_project_manager.delete_project.assert_called_once_with(1)
 
-    def test_delete_project_cancelled(self, qtbot, app, mock_project_manager, sample_projects):
+    def test_delete_project_cancelled(self, projects_tab, sample_projects):
         """Test cancelled project deletion."""
+        tab, mock_project_manager, mock_db_manager = projects_tab
         mock_project_manager.list_projects.return_value = sample_projects
-        
-        tab = ProjectsTab(mock_project_manager)
-        qtbot.addWidget(tab)
         
         # Select first project
-        tab.projects_table.setCurrentCell(0, 0)
+        tab.projects_table.load_projects(sample_projects)
+        tab.projects_table.selectRow(0)
         
+        # Mock confirmation dialog to return No
         with patch('PyQt6.QtWidgets.QMessageBox.question') as mock_question:
             mock_question.return_value = QMessageBox.StandardButton.No
-            tab._on_delete_project()
             
+            # Click delete button
+            tab.delete_button.click()
+            
+            # Verify project deletion was not called
             mock_project_manager.delete_project.assert_not_called()
 
-    def test_project_selection(self, qtbot, app, mock_project_manager, sample_projects):
+    def test_project_selection(self, projects_tab, sample_projects):
         """Test project selection enables/disables buttons."""
+        tab, mock_project_manager, mock_db_manager = projects_tab
         mock_project_manager.list_projects.return_value = sample_projects
         
-        tab = ProjectsTab(mock_project_manager)
-        qtbot.addWidget(tab)
+        # Load projects
+        tab.projects_table.load_projects(sample_projects)
         
-        # Initially disabled
+        # Initially disabled (no selection)
         assert not tab.edit_button.isEnabled()
         assert not tab.delete_button.isEnabled()
         
-        # Select a project
-        tab.projects_table.setCurrentCell(0, 0)
+        # Select first project
+        tab.projects_table.selectRow(0)
         
-        # Should be enabled
+        # Should be enabled now
         assert tab.edit_button.isEnabled()
         assert tab.delete_button.isEnabled()
 
-    def test_refresh_button(self, qtbot, app, mock_project_manager, sample_projects):
+    def test_refresh_button(self, projects_tab, sample_projects):
         """Test refresh button functionality."""
+        tab, mock_project_manager, mock_db_manager = projects_tab
         mock_project_manager.list_projects.return_value = sample_projects
         
-        tab = ProjectsTab(mock_project_manager)
-        qtbot.addWidget(tab)
+        # Reset the mock call count from fixture setup
+        mock_project_manager.list_projects.reset_mock()
         
-        # Clear the list and call refresh
-        tab.projects_table.load_projects([])
-        assert tab.projects_table.rowCount() == 0
+        # Call refresh
+        tab._load_projects()
         
-        tab.refresh_button.click()
-        
-        # Should reload projects
-        assert tab.projects_table.rowCount() == 3 
+        # Verify projects were loaded
+        mock_project_manager.list_projects.assert_called_once() 

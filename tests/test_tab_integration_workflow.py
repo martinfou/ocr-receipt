@@ -10,7 +10,6 @@ This test file covers:
 import pytest
 import tempfile
 import os
-from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import Qt
 
 from ocr_receipt.gui.business_keywords_tab import BusinessKeywordsTab
@@ -24,7 +23,7 @@ class TestCompleteTabWorkflows:
     """Test complete workflows involving tabs."""
     
     @pytest.fixture
-    def business_keywords_tab(self, qtbot):
+    def business_keywords_tab(self, qapp, qtbot):
         """Create a BusinessKeywordsTab for testing."""
         # Create temporary database
         with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as tmp:
@@ -144,7 +143,7 @@ class TestCompleteTabWorkflows:
         # Verify dialog is closed
         assert not edit_dialog.isVisible()
     
-    def test_data_persistence_across_tab_sessions(self, qtbot):
+    def test_data_persistence_across_tab_sessions(self, qapp, qtbot):
         """Test that data persists across different tab sessions."""
         # Create temporary database
         with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as tmp:
@@ -238,7 +237,7 @@ class TestTabErrorRecovery:
     """Test error recovery scenarios in tab workflows."""
     
     @pytest.fixture
-    def business_keywords_tab(self, qtbot):
+    def business_keywords_tab(self, qapp, qtbot):
         """Create a BusinessKeywordsTab for testing."""
         # Create temporary database
         with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as tmp:
@@ -311,7 +310,7 @@ class TestTabErrorRecovery:
 class TestTabPerformance:
     """Test performance aspects of tab operations."""
     
-    def test_tab_creation_performance(self, qtbot):
+    def test_tab_creation_performance(self, qapp, qtbot):
         """Test that tab creation is reasonably fast."""
         import time
         
@@ -340,7 +339,7 @@ class TestTabPerformance:
             except (OSError, PermissionError):
                 pass
     
-    def test_tab_refresh_performance(self, qtbot):
+    def test_tab_refresh_performance(self, qapp, qtbot):
         """Test that tab refresh is reasonably fast."""
         import time
         

@@ -6,7 +6,7 @@ Tests the complete workflow from right-click deletion to UI refresh.
 import pytest
 import tempfile
 import os
-from PyQt6.QtWidgets import QApplication, QMessageBox
+from PyQt6.QtWidgets import QMessageBox
 from PyQt6.QtCore import QTimer, QPoint
 from PyQt6.QtTest import QTest
 from PyQt6.QtGui import QContextMenuEvent
@@ -16,15 +16,6 @@ from ocr_receipt.business.database_manager import DatabaseManager
 from ocr_receipt.business.business_mapping_manager import BusinessMappingManager
 from ocr_receipt.gui.business_keywords_tab import BusinessKeywordsTab
 from ocr_receipt.gui.widgets.keywords_table import KeywordsTable
-
-
-@pytest.fixture
-def app():
-    """Create QApplication instance for testing."""
-    app = QApplication.instance()
-    if app is None:
-        app = QApplication([])
-    yield app
 
 
 @pytest.fixture
@@ -49,7 +40,7 @@ def business_mapping_manager(temp_db):
 
 
 @pytest.fixture
-def business_keywords_tab(business_mapping_manager, app):
+def business_keywords_tab(business_mapping_manager, qapp):
     """Create BusinessKeywordsTab instance."""
     tab = BusinessKeywordsTab(business_mapping_manager)
     return tab

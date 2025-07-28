@@ -3,18 +3,11 @@ Test total amount formatting functionality.
 """
 
 import pytest
-from PyQt6.QtWidgets import QApplication
 from ocr_receipt.gui.widgets.data_panel import DataPanel
 
 
 @pytest.fixture
-def app():
-    """Create a QApplication instance for testing."""
-    return QApplication([])
-
-
-@pytest.fixture
-def data_panel(app):
+def data_panel(qapp):
     """Create a DataPanel instance for testing."""
     return DataPanel()
 
