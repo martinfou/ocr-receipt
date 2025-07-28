@@ -18,11 +18,11 @@ from pathlib import Path
 import logging
 
 try:
-    from PyPDF2 import PdfReader, PdfWriter
+    from pypdf import PdfReader, PdfWriter
     PDF_SUPPORT = True
 except ImportError:
     PDF_SUPPORT = False
-    logging.warning("PyPDF2 not available. PDF metadata functionality will be disabled.")
+    logging.warning("pypdf not available. PDF metadata functionality will be disabled.")
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ class FilenameUtils:
     # Valid template variables
     VALID_VARIABLES = {
         'project', 'documentType', 'date', 'company', 'total', 
-        'invoiceNumber', 'category', 'categoryCode'
+        'invoiceNumber', 'checkNumber', 'category', 'categoryCode'
     }
     
     # Invalid filename characters (Windows and Unix)
@@ -78,9 +78,9 @@ class FilenameUtils:
             # Clean up any remaining placeholders
             result = re.sub(r'\{[^}]+\}', '', result)
             
-            # Clean up separators
-            result = re.sub(r'[_-]+', '_', result)
-            result = result.strip('_-')
+            # Clean up separators - preserve hyphens, only normalize underscores
+            result = re.sub(r'_+', '_', result)  # Multiple underscores to single underscore
+            result = result.strip('_')  # Only strip underscores, preserve hyphens
             
             # Final validation
             if not result:
@@ -327,7 +327,7 @@ class PDFMetadataHandler:
             True if successful, False otherwise
         """
         if not PDF_SUPPORT:
-            logger.warning("PDF metadata saving not available - PyPDF2 not installed")
+            logger.warning("PDF metadata saving not available - pypdf not installed")
             return False
             
         try:
@@ -345,9 +345,16 @@ class PDFMetadataHandler:
                 for page in reader.pages:
                     writer.add_page(page)
                 
-                # Add metadata
-                metadata = reader.metadata or {}
-                metadata[PDFMetadataHandler.METADATA_KEY] = json.dumps(variables)
+                # Create metadata dictionary with our variables
+                metadata = {
+                    '/Title': f"OCR Receipt Variables - {Path(pdf_path).name}",
+                    '/Creator': 'OCR Receipt Parser',
+                    '/Producer': 'OCR Receipt Parser v1.0',
+                    '/Subject': 'Invoice/Receipt Data',
+                    '/Keywords': json.dumps(variables)  # Store variables as JSON in keywords
+                }
+                
+                # Add metadata to the PDF
                 writer.add_metadata(metadata)
             
             # Write the updated PDF
@@ -374,7 +381,7 @@ class PDFMetadataHandler:
             Dictionary of variables found in metadata
         """
         if not PDF_SUPPORT:
-            logger.warning("PDF metadata loading not available - PyPDF2 not installed")
+            logger.warning("PDF metadata loading not available - pypdf not installed")
             return {}
             
         try:
@@ -388,12 +395,17 @@ class PDFMetadataHandler:
                 reader = PdfReader(file)
                 metadata = reader.metadata or {}
                 
-                if PDFMetadataHandler.METADATA_KEY in metadata:
-                    variables_json = metadata[PDFMetadataHandler.METADATA_KEY]
-                    variables = json.loads(variables_json)
-                    logger.info(f"Variables loaded from PDF metadata: {pdf_path}")
-                    logger.debug(f"Variables: {variables}")
-                    return variables
+                # Try to get variables from keywords field
+                if '/Keywords' in metadata:
+                    try:
+                        variables_json = metadata['/Keywords']
+                        variables = json.loads(variables_json)
+                        logger.info(f"Variables loaded from PDF metadata: {pdf_path}")
+                        logger.debug(f"Variables: {variables}")
+                        return variables
+                    except (json.JSONDecodeError, TypeError):
+                        logger.warning(f"Invalid JSON in PDF keywords metadata: {pdf_path}")
+                        return {}
                 else:
                     logger.info(f"No variables found in PDF metadata: {pdf_path}")
                     return {}
@@ -424,7 +436,7 @@ class PDFMetadataHandler:
             with open(pdf_path, 'rb') as file:
                 reader = PdfReader(file)
                 metadata = reader.metadata or {}
-                return PDFMetadataHandler.METADATA_KEY in metadata
+                return '/Keywords' in metadata
                 
         except Exception as e:
             logger.error(f"Failed to check PDF metadata: {e}")

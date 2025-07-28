@@ -1,7 +1,7 @@
 app:
   mode: development
   ocr_language: eng
-  ui_language: en
+  ui_language: fr
 database:
   path: ocr_receipts.db
   timeout: 30
@@ -16,11 +16,6 @@ file_naming:
       description: Standard template with project, date, company, and total
       name: Default Template
       template: '{project}_{documentType}_{date}_{company}_{total}'
-    testtemplate:
-      active: false
-      description: null
-      name: testtemplate
-      template: '{project}'
 gui:
   auto_save: true
   show_preview: true

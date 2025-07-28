@@ -32,6 +32,10 @@ class TestTranslationHelper:
     
     def test_default_language(self):
         """Test default language is English."""
+        # Reset to default language before testing
+        from ocr_receipt.utils.translation_helper import set_language
+        set_language('en')
+        
         helper = TranslationHelper()
         assert helper.get_language() == 'en'
     

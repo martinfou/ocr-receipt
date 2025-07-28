@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import (
 from .widgets.data_panel import DataPanel
 from .widgets.pdf_preview import PDFPreview
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QIcon
+from PyQt6.QtGui import QIcon, QFont
 from ocr_receipt.config import ConfigManager
 from ocr_receipt.parsers.invoice_parser import InvoiceParser, InvoiceParserError
 from ocr_receipt.utils.filename_utils import FilenameUtils
@@ -19,11 +19,12 @@ class SinglePDFTab(QWidget):
     Advanced Single PDF tab with PDF preview, project settings, extracted data, file naming preview, and action buttons.
     Now uses a QSplitter with a QGridLayout for true vertical alignment of navigation and project settings.
     """
-    def __init__(self, business_mapping_manager, project_manager, category_manager, config_manager=None, parent=None):
+    def __init__(self, business_mapping_manager, project_manager, category_manager, document_type_manager=None, config_manager=None, parent=None):
         super().__init__(parent)
         self.business_mapping_manager = business_mapping_manager
         self.project_manager = project_manager
         self.category_manager = category_manager
+        self.document_type_manager = document_type_manager
         self.config_manager = config_manager
         self.templates = {}
         self.active_template_id = None
@@ -33,64 +34,28 @@ class SinglePDFTab(QWidget):
 
     def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(10)
 
-        # Top bar: File selection and re-process
-        top_bar_widget = QWidget()
-        top_bar = QHBoxLayout(top_bar_widget)
-        top_bar.setContentsMargins(0, 0, 0, 0)
-        top_bar.setSpacing(2)
-        self.browse_button = QPushButton("📁 Browse")
-        self.file_path_edit = QLineEdit()
-        self.reprocess_button = QPushButton("🔄")
-        self.file_path_edit.setMinimumHeight(28)
-        self.browse_button.setMinimumHeight(28)
-        self.reprocess_button.setMinimumHeight(28)
-        self.file_path_edit.setMaximumHeight(28)
-        self.browse_button.setMaximumHeight(28)
-        self.reprocess_button.setMaximumHeight(28)
-        top_bar.addWidget(self.browse_button)
-        top_bar.addWidget(self.file_path_edit)
-        top_bar.addWidget(self.reprocess_button)
-        top_bar.addStretch()
-        top_bar.addWidget(QLabel("Single PDF Processor"))
-        top_bar_widget.setMinimumHeight(32)
-        top_bar_widget.setMaximumHeight(32)
-        layout.addWidget(top_bar_widget)
+        # Header section
+        header_frame = QFrame()
+        header_frame.setFrameStyle(QFrame.Shape.StyledPanel)
+        header_frame.setMaximumHeight(60)
+        header_layout = QVBoxLayout(header_frame)
+        
+        title_label = QLabel("Single PDF Processor")
+        title_label.setObjectName("title_label")
+        title_label.setFont(QFont("Arial", 16, QFont.Weight.Bold))
+        header_layout.addWidget(title_label)
+        
+        subtitle_label = QLabel("Process and extract data from individual PDF files")
+        subtitle_label.setObjectName("subtitle_label")
+        subtitle_label.setStyleSheet("color: #666;")
+        header_layout.addWidget(subtitle_label)
+        
+        layout.addWidget(header_frame)
 
-        # Progress indicator area
-        progress_widget = QWidget()
-        progress_layout = QHBoxLayout(progress_widget)
-        progress_layout.setContentsMargins(8, 4, 8, 4)
-        progress_layout.setSpacing(8)
 
-        self.progress_bar = QProgressBar()
-        self.progress_bar.setVisible(False)
-        self.progress_bar.setMaximumHeight(24)
-        self.progress_bar.setMinimumHeight(20)
-        self.progress_bar.setStyleSheet("""
-            QProgressBar {
-                border: 2px solid #0078D4;
-                border-radius: 4px;
-                text-align: center;
-                background-color: #f0f0f0;
-                font-weight: bold;
-                color: #333;
-            }
-            QProgressBar::chunk {
-                background-color: #0078D4;
-                border-radius: 2px;
-            }
-        """)
-
-        self.status_label = QLabel("Ready to process PDF")
-        self.status_label.setStyleSheet("color: #333; font-size: 12px; font-weight: bold; padding-left: 8px;")
-
-        progress_layout.addWidget(self.progress_bar)
-        progress_layout.addWidget(self.status_label)
-        progress_layout.addStretch()
-
-        layout.addWidget(progress_widget)
 
         # Main content area: QSplitter for resizable columns
         splitter = QSplitter(Qt.Orientation.Horizontal)
@@ -111,17 +76,33 @@ class SinglePDFTab(QWidget):
         nav_controls = self.pdf_preview.get_controls_widget()
         # Row 0: navigation/zoom controls (left), action buttons (right)
         left_grid.addWidget(nav_controls, 0, 0)
+        
+        # Action buttons and file path display
+        file_path_layout = QVBoxLayout()
+        
+        # Action buttons (top)
         actions = QHBoxLayout()
-        self.save_button = QPushButton("💾 Save")
-        self.rename_button = QPushButton("🖉 Rename File")
         self.browse_rename_button = QPushButton("📁 Browse")
         self.raw_data_button = QPushButton("📄 Raw Data")
-        actions.addWidget(self.save_button)
-        actions.addWidget(self.rename_button)
+        self.rename_button = QPushButton("🖉 Rename File")
+        self.ocr_button = QPushButton("🔍 OCR")
         actions.addWidget(self.browse_rename_button)
         actions.addWidget(self.raw_data_button)
+        actions.addWidget(self.rename_button)
+        actions.addWidget(self.ocr_button)
+        file_path_layout.addLayout(actions)
+        
+        # File path display (bottom)
+        file_path_group = QGroupBox("Current File")
+        file_path_group_layout = QHBoxLayout(file_path_group)
+        self.file_path_edit = QLineEdit()
+        self.file_path_edit.setPlaceholderText("No file selected")
+        self.file_path_edit.setReadOnly(True)
+        file_path_group_layout.addWidget(self.file_path_edit)
+        file_path_layout.addWidget(file_path_group)
+        
         actions_widget = QWidget()
-        actions_widget.setLayout(actions)
+        actions_widget.setLayout(file_path_layout)
         right_grid.addWidget(actions_widget, 0, 0)
 
         # Row 1: PDF preview (left), Project Settings group (right)
@@ -129,7 +110,12 @@ class SinglePDFTab(QWidget):
         project_group = QGroupBox("Project Settings")
         project_layout = QFormLayout(project_group)
         self.document_type_combo = QComboBox()
-        self.document_type_combo.addItems(["Invoice", "Credit Card", "Other"])
+        # Populate with document types from manager or fallback to defaults
+        if self.document_type_manager:
+            document_types = self.document_type_manager.get_document_type_names()
+            self.document_type_combo.addItems(document_types)
+        else:
+            self.document_type_combo.addItems(["Invoice", "Credit Card", "Receipt", "Other"])
         self.interactive_mode_checkbox = QCheckBox("Interactive Mode")
         self.interactive_mode_checkbox.setChecked(True)
         self.confidence_slider = QSlider()
@@ -160,7 +146,7 @@ class SinglePDFTab(QWidget):
         # --- DataPanel replaces Extracted Data group ---
         extracted_info_group = QGroupBox("Extracted Information")
         extracted_info_layout = QVBoxLayout(extracted_info_group)
-        self.data_panel = DataPanel()
+        self.data_panel = DataPanel(business_mapping_manager=self.business_mapping_manager)
         extracted_info_layout.addWidget(self.data_panel)
         right_grid.addWidget(extracted_info_group, 2, 0)
         # --- End DataPanel replacement ---
@@ -177,7 +163,19 @@ class SinglePDFTab(QWidget):
         right_grid.addWidget(filename_group, 3, 0)
 
         right_grid.setRowStretch(4, 1)
-        left_grid.setRowStretch(2, 1)
+        left_grid.setRowStretch(1, 1)
+
+        # Add status bar and progress bar to the left grid (PDF viewer side)
+        self.status_label = QLabel("Ready")
+        self.status_label.setStyleSheet("color: #666; font-style: italic;")
+        self.status_label.setMaximumHeight(25)  # Constrain height to make it thinner
+        left_grid.addWidget(self.status_label, 3, 0)  # Row 3, Column 0
+        
+        # Add progress bar
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setVisible(False)  # Hidden initially
+        self.progress_bar.setMaximumHeight(20)
+        left_grid.addWidget(self.progress_bar, 4, 0)  # Row 4, Column 0
 
         splitter.addWidget(left_grid_widget)
         splitter.addWidget(right_grid_widget)
@@ -185,11 +183,10 @@ class SinglePDFTab(QWidget):
         layout.addWidget(splitter)
 
     def _setup_connections(self) -> None:
-        self.browse_button.clicked.connect(self._on_browse_file)
-        self.reprocess_button.clicked.connect(self._on_reprocess_file)
         self.browse_rename_button.clicked.connect(self._on_browse_rename)
         self.rename_button.clicked.connect(self._on_rename_file)
         self.raw_data_button.clicked.connect(self._on_raw_data)
+        self.ocr_button.clicked.connect(self._on_ocr)
         self.confidence_slider.valueChanged.connect(self._on_confidence_changed)
         self.template_combo.currentTextChanged.connect(self._on_template_changed)
         self.document_type_combo.currentTextChanged.connect(self._on_template_changed)
@@ -197,7 +194,7 @@ class SinglePDFTab(QWidget):
         
         # Connect data panel fields for live filename preview updates
         if hasattr(self.data_panel, 'company_edit'):
-            self.data_panel.company_edit.textChanged.connect(self._on_template_changed)
+            self.data_panel.company_edit.currentTextChanged.connect(self._on_template_changed)
         if hasattr(self.data_panel, 'total_edit'):
             self.data_panel.total_edit.textChanged.connect(self._on_template_changed)
         if hasattr(self.data_panel, 'date_edit'):
@@ -208,21 +205,7 @@ class SinglePDFTab(QWidget):
             self.data_panel.category_combo.currentTextChanged.connect(self._on_template_changed)
         # TODO: Connect other signals for interactive features
 
-    def _on_reprocess_file(self) -> None:
-        """Handle file reprocessing with visual feedback."""
-        file_path = self.file_path_edit.text()
-        if file_path:
-            self._process_pdf_file(file_path)
-        else:
-            # If no file is selected, show a test of the progress bar
-            self.test_progress_bar_visibility()
 
-    def _on_browse_file(self) -> None:
-        from PyQt6.QtWidgets import QFileDialog, QMessageBox
-        file_path, _ = QFileDialog.getOpenFileName(self, "Select PDF File", "", "PDF Files (*.pdf)")
-        if file_path:
-            self.file_path_edit.setText(file_path)
-            self._process_pdf_file(file_path)
 
     def _process_pdf_file(self, file_path: str) -> None:
         """Process PDF file with visual feedback."""
@@ -231,46 +214,78 @@ class SinglePDFTab(QWidget):
         from ocr_receipt.utils.filename_utils import PDFMetadataHandler
         
         try:
+            from PyQt6.QtCore import QCoreApplication
+            
             # Stage 1: Loading
             self.show_processing_stage("loading")
+            QCoreApplication.processEvents()  # Allow UI to update
             
             # Load PDF preview (this might take some time)
             self.pdf_preview.load_pdf(file_path)
             
-            # Check for embedded variables in PDF metadata
-            embedded_variables = PDFMetadataHandler.load_variables_from_metadata(file_path)
-            if embedded_variables:
-                logger.info(f"Found embedded variables in PDF: {embedded_variables}")
-                self._load_embedded_variables(embedded_variables)
-            
             # Stage 2: Converting to images
             self.show_processing_stage("converting")
+            QCoreApplication.processEvents()  # Allow UI to update
             
-            # Stage 3: OCR Processing
+            # Parse the PDF (this is the main processing - includes OCR)
+            config = ConfigManager()._config  # Get full config dict
+            parser = InvoiceParser(config)
+            
+            # Stage 3: OCR Processing (during the actual parse)
             self.show_processing_stage("ocr")
+            QCoreApplication.processEvents()  # Allow UI to update
+            result = parser.parse(Path(file_path))
             
             # Stage 4: Data Extraction
             self.show_processing_stage("extracting")
-            
-            # Parse the PDF (this is the main processing)
-            config = ConfigManager()._config  # Get full config dict
-            parser = InvoiceParser(config)
-            result = parser.parse(Path(file_path))
+            QCoreApplication.processEvents()  # Allow UI to update
             
             # Stage 5: Business Matching
             self.show_processing_stage("matching")
+            QCoreApplication.processEvents()  # Allow UI to update
             
-            # Load extracted data into DataPanel
-            self.data_panel.load_data({
-                "company": result.get("company", ""),
-                "total": result.get("total", ""),
-                "date": result.get("date", ""),
-                "invoice_number": result.get("invoice_number", ""),
-                "company_confidence": result.get("confidence", 1.0),
-                "total_confidence": result.get("confidence", 1.0),
-                "date_confidence": result.get("confidence", 1.0),
-                "invoice_number_confidence": result.get("confidence", 1.0)
-            })
+            # Check for embedded variables in PDF metadata (after OCR processing)
+            embedded_variables = PDFMetadataHandler.load_variables_from_metadata(file_path)
+            if embedded_variables:
+                logger.info(f"Found embedded variables in PDF: {embedded_variables}")
+                # Merge OCR results with embedded variables (embedded variables take precedence)
+                merged_result = result.copy()
+                for key, value in embedded_variables.items():
+                    if key in ['company', 'total', 'date', 'invoice_number', 'check_number'] and value:
+                        merged_result[key] = value
+                        # Set high confidence for embedded variables
+                        merged_result[f"{key}_confidence"] = 1.0
+                
+                # Load embedded variables into form fields
+                self._load_embedded_variables(embedded_variables)
+                
+                # Load merged data into DataPanel
+                self.data_panel.load_data({
+                    "company": merged_result.get("company", ""),
+                    "total": merged_result.get("total", ""),
+                    "date": merged_result.get("date", ""),
+                    "invoice_number": merged_result.get("invoice_number", ""),
+                    "check_number": merged_result.get("check_number", ""),
+                    "company_confidence": merged_result.get("company_confidence", result.get("confidence", 1.0)) if merged_result.get("company") else 0.0,
+                    "total_confidence": merged_result.get("total_confidence", result.get("confidence", 1.0)) if merged_result.get("total") else 0.0,
+                    "date_confidence": merged_result.get("date_confidence", result.get("confidence", 1.0)) if merged_result.get("date") else 0.0,
+                    "invoice_number_confidence": merged_result.get("invoice_number_confidence", result.get("confidence", 1.0)) if merged_result.get("invoice_number") else 0.0,
+                    "check_number_confidence": merged_result.get("check_number_confidence", result.get("confidence", 1.0)) if merged_result.get("check_number") else 0.0
+                })
+            else:
+                # Load extracted data into DataPanel (OCR results only)
+                self.data_panel.load_data({
+                    "company": result.get("company", ""),
+                    "total": result.get("total", ""),
+                    "date": result.get("date", ""),
+                    "invoice_number": result.get("invoice_number", ""),
+                    "check_number": result.get("check_number", ""),
+                    "company_confidence": result.get("confidence", 1.0) if result.get("company") else 0.0,
+                    "total_confidence": result.get("confidence", 1.0) if result.get("total") else 0.0,
+                    "date_confidence": result.get("confidence", 1.0) if result.get("date") else 0.0,
+                    "invoice_number_confidence": result.get("confidence", 1.0) if result.get("invoice_number") else 0.0,
+                    "check_number_confidence": result.get("confidence", 1.0) if result.get("check_number") else 0.0
+                })
             
             # Stage 6: Complete
             self.show_processing_stage("complete")
@@ -345,52 +360,87 @@ class SinglePDFTab(QWidget):
         if file_path:
             # Update the file path in the UI
             self.file_path_edit.setText(file_path)
-            # Process the new PDF file
-            self._process_pdf_file(file_path)
+            self.set_status(f"Selected file: {Path(file_path).name}")
+            
+            # Check if file already has metadata
+            from ocr_receipt.utils.filename_utils import PDFMetadataHandler
+            if PDFMetadataHandler.has_variables_in_metadata(file_path):
+                self.set_status(f"File contains metadata - loading existing data")
+                # Load existing metadata without OCR
+                self._load_existing_metadata(file_path)
+            else:
+                self.set_status(f"File selected - ready for OCR processing")
+                # Load PDF preview only (no OCR yet)
+                self.pdf_preview.load_pdf(file_path)
 
     def _on_rename_file(self) -> None:
-        """Handle the rename file action."""
-        from PyQt6.QtWidgets import QFileDialog, QMessageBox
-        from PyQt6.QtCore import QTimer
+        """Handle the rename file action using the filename preview."""
+        from PyQt6.QtWidgets import QMessageBox
         
         current_file_path = self.file_path_edit.text()
         if not current_file_path:
             QMessageBox.warning(self, "No PDF File Selected", "Please select a PDF file to rename.")
             return
         
-        new_file_name, _ = QFileDialog.getSaveFileName(
-            self,
-            "Rename PDF File",
-            current_file_path,
-            "PDF Files (*.pdf)"
-        )
+        # Get the filename from the preview (remove .pdf extension if present)
+        preview_filename = self.filename_preview.text()
+        if not preview_filename or preview_filename == "No template available" or preview_filename == "Template not found" or preview_filename == "No template content" or preview_filename == "Error generating preview":
+            QMessageBox.warning(self, "No Filename Preview", "Please ensure a valid filename template is configured and data is extracted.")
+            return
         
-        if new_file_name:
-            try:
-                # Ensure the new path is a PDF file
-                if not new_file_name.lower().endswith('.pdf'):
-                    new_file_name += '.pdf'
-                
-                # Check if the new path is different from the current one
-                if Path(new_file_name).resolve() == Path(current_file_path).resolve():
-                    QMessageBox.information(self, "No Change", "The new file name is the same as the current file name.")
-                    return
-                
-                # Rename the file
-                Path(current_file_path).rename(new_file_name)
-                
-                # Update the file path in the UI
-                self.file_path_edit.setText(new_file_name)
-                
-                # Re-process the file with the new path
-                self._process_pdf_file(new_file_name)
-                
-                QMessageBox.information(self, "File Renamed", f"File '{current_file_path}' renamed to '{new_file_name}'.")
-                
-            except FileNotFoundError:
-                QMessageBox.warning(self, "File Not Found", f"The file '{current_file_path}' was not found.")
-            except Exception as e:
-                QMessageBox.critical(self, "Error Renaming File", f"Failed to rename file: {e}")
+        # Remove .pdf extension if present to get just the filename
+        if preview_filename.endswith('.pdf'):
+            new_filename = preview_filename[:-4]  # Remove .pdf
+        else:
+            new_filename = preview_filename
+        
+        try:
+            # Use FilenameUtils to rename the file
+            new_file_path = FilenameUtils.rename_file(current_file_path, new_filename)
+            
+            # Save current form data to PDF metadata
+            from ocr_receipt.utils.filename_utils import PDFMetadataHandler
+            
+            # Get current data from the form
+            total_value = self.data_panel.total_edit.text() if hasattr(self.data_panel, 'total_edit') else ''
+            
+            # Format total with 2 decimal places for filename
+            if total_value:
+                try:
+                    total_float = float(total_value)
+                    formatted_total = f"{total_float:.2f}"
+                except (ValueError, TypeError):
+                    formatted_total = total_value
+            else:
+                formatted_total = ''
+            
+            current_data = {
+                'project': self.project_combo.currentText(),
+                'documentType': self.document_type_combo.currentText().lower(),
+                'date': self.data_panel.date_edit.text() if hasattr(self.data_panel, 'date_edit') else '',
+                'company': self.data_panel.company_edit.currentText() if hasattr(self.data_panel, 'company_edit') else '',
+                'total': formatted_total,
+                'invoiceNumber': self.data_panel.invoice_number_edit.text() if hasattr(self.data_panel, 'invoice_number_edit') else '',
+                'checkNumber': self.data_panel.check_number_edit.text() if hasattr(self.data_panel, 'check_number_edit') else '',
+                'category': self.data_panel.category_combo.currentText() if hasattr(self.data_panel, 'category_combo') else '',
+                'categoryCode': 'UTIL'  # Default category code
+            }
+            
+            # Save to PDF metadata
+            PDFMetadataHandler.save_variables_to_metadata(new_file_path, current_data)
+            
+            # Update the file path in the UI
+            self.file_path_edit.setText(new_file_path)
+            
+            # Re-process the file with the new path
+            self._process_pdf_file(new_file_path)
+            
+            self.set_status(f"File renamed to: {Path(new_file_path).name}")
+            
+        except FileNotFoundError:
+            QMessageBox.warning(self, "File Not Found", f"The file '{current_file_path}' was not found.")
+        except Exception as e:
+            QMessageBox.critical(self, "Error Renaming File", f"Failed to rename file: {e}")
 
     def _on_raw_data(self) -> None:
         """Display raw extracted text from the PDF."""
@@ -407,13 +457,16 @@ class SinglePDFTab(QWidget):
             from ocr_receipt.core.ocr_engine import OCREngine
             from ocr_receipt.core.text_extractor import TextExtractor
             
-            # Create OCR engine and text extractor
-            config = ConfigManager()._config
+            # Create OCR engine and text extractor using existing config manager
+            if not self.config_manager:
+                raise Exception("Configuration manager not available")
+            
+            config = self.config_manager._config
             ocr_engine = OCREngine(config)
-            text_extractor = TextExtractor(ocr_engine)
+            text_extractor = TextExtractor(config)
             
             # Extract text from PDF
-            extracted_text = text_extractor.extract_text_from_pdf(file_path)
+            extracted_text = text_extractor.extract_from_pdf(file_path)
             
             if not extracted_text:
                 QMessageBox.information(self, "No Text Found", "No text could be extracted from the PDF.")
@@ -524,95 +577,115 @@ class SinglePDFTab(QWidget):
 
     def show_processing_stage(self, stage: str):
         """Show appropriate status for each processing stage."""
-        stages = {
-            "loading": ("📄 Loading PDF file...", "Loading"),
-            "converting": ("🖼️ Converting pages to images...", "Converting"), 
-            "ocr": ("🔍 Running OCR analysis...", "OCR Processing"),
-            "extracting": ("📊 Extracting invoice data...", "Data Extraction"),
-            "matching": ("🏢 Matching business names...", "Business Matching"),
-            "complete": ("✅ Processing complete!", "Complete"),
-            "error": ("❌ Error occurred", "Error")
+        # Define status messages for each stage
+        stage_messages = {
+            'loading': 'Loading PDF file...',
+            'converting': 'Converting pages to images...',
+            'ocr': 'Running OCR...',
+            'extracting': 'Extracting invoice data...',
+            'matching': 'Matching business names...',
+            'complete': 'Processing complete',
+            'error': 'Error occurred during processing'
         }
         
-        message, short_status = stages.get(stage, ("Processing...", "Processing"))
+        # Update status message
+        message = stage_messages.get(stage, 'Processing...')
         self.status_label.setText(message)
         
-        # Define which stages are processing stages (show progress, disable controls)
+        # Configure progress bar based on stage
         processing_stages = ["loading", "converting", "ocr", "extracting", "matching"]
         
-        if stage in processing_stages or stage not in stages:
-            # Show progress bar for known processing stages or unknown stages
+        if stage in processing_stages:
+            # Show indeterminate progress for processing stages
             self.progress_bar.setVisible(True)
-            self.progress_bar.setRange(0, 0)  # Indeterminate progress
-            self.progress_bar.setValue(0)  # Ensure it starts at 0
+            self.progress_bar.setMinimum(0)
+            self.progress_bar.setMaximum(0)  # Indeterminate progress
             self._disable_controls_during_processing()
-            
-            # Force the progress bar to update immediately
-            self.progress_bar.repaint()
-        else:
-            # Hide progress bar for completion stages
+        elif stage == 'complete':
+            # Hide progress bar and show completion
             self.progress_bar.setVisible(False)
             self._enable_controls_after_processing()
+        elif stage == 'error':
+            # Hide progress bar and show error
+            self.progress_bar.setVisible(False)
+            self._enable_controls_after_processing()
+        else:
+            # Treat unknown stages as processing stages (disable controls)
+            self.progress_bar.setVisible(True)
+            self.progress_bar.setMinimum(0)
+            self.progress_bar.setMaximum(0)  # Indeterminate progress
+            self._disable_controls_during_processing()
 
     def _disable_controls_during_processing(self):
         """Disable controls during processing."""
-        self.browse_button.setEnabled(False)
-        self.reprocess_button.setEnabled(False)
-        self.save_button.setEnabled(False)
+        self.browse_rename_button.setEnabled(False)
+        self.ocr_button.setEnabled(False)
         self.rename_button.setEnabled(False)
         self.raw_data_button.setEnabled(False)
 
     def _enable_controls_after_processing(self):
         """Re-enable controls after processing."""
-        self.browse_button.setEnabled(True)
-        self.reprocess_button.setEnabled(True)
-        self.save_button.setEnabled(True)
+        self.browse_rename_button.setEnabled(True)
+        self.ocr_button.setEnabled(True)
         self.rename_button.setEnabled(True)
         self.raw_data_button.setEnabled(True)
-
-    def process_pdf_with_feedback(self, file_path: str):
-        """Process PDF with visual feedback at each stage."""
+    
+    def set_status(self, message: str):
+        """Set a custom status message."""
+        self.status_label.setText(message)
+    
+    def _on_ocr(self) -> None:
+        """Handle OCR button click."""
+        current_file_path = self.file_path_edit.text()
+        if not current_file_path:
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.warning(self, "No PDF File Selected", "Please select a PDF file to process with OCR.")
+            return
+        
+        # Start OCR processing
+        self._process_pdf_file(current_file_path)
+    
+    def _load_existing_metadata(self, file_path: str) -> None:
+        """Load existing metadata from PDF without running OCR."""
+        from ocr_receipt.utils.filename_utils import PDFMetadataHandler
+        
         try:
-            # Stage 1: Loading
-            self.show_processing_stage("loading")
+            # Load PDF preview
+            self.pdf_preview.load_pdf(file_path)
             
-            # Stage 2: Converting to images
-            self.show_processing_stage("converting")
-            # PDF to image conversion happens in PDFPreview
-            
-            # Stage 3: OCR Processing
-            self.show_processing_stage("ocr")
-            # OCR processing happens in InvoiceParser
-            
-            # Stage 4: Data Extraction
-            self.show_processing_stage("extracting")
-            # Data extraction happens in InvoiceParser
-            
-            # Stage 5: Business Matching
-            self.show_processing_stage("matching")
-            # Business matching happens in InvoiceParser
-            
-            # Complete
-            self.show_processing_stage("complete")
-            
+            # Load existing metadata
+            embedded_variables = PDFMetadataHandler.load_variables_from_metadata(file_path)
+            if embedded_variables:
+                logger.info(f"Loaded existing metadata: {embedded_variables}")
+                
+                # Load embedded variables into form fields
+                self._load_embedded_variables(embedded_variables)
+                
+                # Load data into DataPanel
+                self.data_panel.load_data({
+                    "company": embedded_variables.get("company", ""),
+                    "total": embedded_variables.get("total", ""),
+                    "date": embedded_variables.get("date", ""),
+                    "invoice_number": embedded_variables.get("invoice_number", ""),
+                    "check_number": embedded_variables.get("check_number", ""),
+                    "company_confidence": 1.0 if embedded_variables.get("company") else 0.0,  # High confidence only if data exists
+                    "total_confidence": 1.0 if embedded_variables.get("total") else 0.0,
+                    "date_confidence": 1.0 if embedded_variables.get("date") else 0.0,
+                    "invoice_number_confidence": 1.0 if embedded_variables.get("invoice_number") else 0.0,
+                    "check_number_confidence": 1.0 if embedded_variables.get("check_number") else 0.0
+                })
+                
+                self.set_status("Existing metadata loaded successfully")
+            else:
+                self.set_status("No metadata found in file")
+                
         except Exception as e:
-            self.show_processing_stage("error")
-            # Error handling is done in the calling method
+            logger.error(f"Failed to load existing metadata: {e}")
+            self.set_status(f"Error loading metadata: {e}")
 
-    def test_progress_bar_visibility(self):
-        """Test method to verify progress bar visibility - for debugging."""
-        print("Testing progress bar visibility...")
-        print(f"Progress bar visible: {self.progress_bar.isVisible()}")
-        print(f"Progress bar geometry: {self.progress_bar.geometry()}")
-        print(f"Progress bar parent: {self.progress_bar.parent()}")
-        
-        # Show the progress bar
-        self.show_processing_stage("loading")
-        print(f"After show_processing_stage - Progress bar visible: {self.progress_bar.isVisible()}")
-        
-        # Wait a bit and then hide
-        from PyQt6.QtCore import QTimer
-        QTimer.singleShot(3000, lambda: self.show_processing_stage("complete"))
+
+
+
 
     def _load_templates(self) -> None:
         """Load templates from configuration."""
@@ -668,13 +741,26 @@ class SinglePDFTab(QWidget):
                 return
             
             # Get current data from the form
+            total_value = self.data_panel.total_edit.text() if hasattr(self.data_panel, 'total_edit') else '1234.56'
+            
+            # Format total with 2 decimal places for filename
+            if total_value:
+                try:
+                    total_float = float(total_value)
+                    formatted_total = f"{total_float:.2f}"
+                except (ValueError, TypeError):
+                    formatted_total = total_value
+            else:
+                formatted_total = '1234.56'
+            
             data = {
                 'project': self.project_combo.currentText() or 'Q1_2024_Invoices',
                 'documentType': self.document_type_combo.currentText().lower() or 'invoice',
                 'date': self.data_panel.date_edit.text() if hasattr(self.data_panel, 'date_edit') else '2024-01-15',
-                'company': self.data_panel.company_edit.text() if hasattr(self.data_panel, 'company_edit') else 'Hydro Quebec Inc',
-                'total': self.data_panel.total_edit.text() if hasattr(self.data_panel, 'total_edit') else '1234.56',
+                'company': self.data_panel.company_edit.currentText() if hasattr(self.data_panel, 'company_edit') else 'Hydro Quebec Inc',
+                'total': formatted_total,
                 'invoiceNumber': self.data_panel.invoice_number_edit.text() if hasattr(self.data_panel, 'invoice_number_edit') else 'INV-2024-001',
+                'checkNumber': self.data_panel.check_number_edit.text() if hasattr(self.data_panel, 'check_number_edit') else 'CHK-2024-001',
                 'category': self.data_panel.category_combo.currentText() if hasattr(self.data_panel, 'category_combo') else 'Utilities',
                 'categoryCode': 'UTIL'  # Default category code
             }
@@ -700,10 +786,74 @@ class SinglePDFTab(QWidget):
         return FilenameUtils.clean_filename_part(value)
 
     def refresh_templates(self) -> None:
-        """Refresh templates from configuration."""
+        """Refresh templates when they change."""
         self._load_templates()
+        self._update_template_combo()
         self._update_filename_preview()
 
+    def refresh_company_dropdown(self) -> None:
+        """Refresh the company dropdown when businesses are modified."""
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info("Refreshing company dropdown")
+        
+        if hasattr(self, 'data_panel'):
+            # Store current text before refreshing
+            current_text = self.data_panel.company_edit.currentText()
+            logger.info(f"Current company text: {current_text}")
+            
+            # Get businesses before refresh
+            businesses_before = []
+            for i in range(self.data_panel.company_edit.count()):
+                businesses_before.append(self.data_panel.company_edit.itemText(i))
+            logger.info(f"Businesses before refresh: {businesses_before}")
+            
+            self.data_panel._populate_company_dropdown()
+            
+            # Get businesses after refresh
+            businesses_after = []
+            for i in range(self.data_panel.company_edit.count()):
+                businesses_after.append(self.data_panel.company_edit.itemText(i))
+            logger.info(f"Businesses after refresh: {businesses_after}")
+            
+            # Restore current text if it still exists in the dropdown
+            if current_text:
+                index = self.data_panel.company_edit.findText(current_text)
+                if index >= 0:
+                    self.data_panel.company_edit.setCurrentIndex(index)
+                    logger.info(f"Restored current text '{current_text}' at index {index}")
+                else:
+                    # If the text is not in the dropdown anymore, set it as current text
+                    self.data_panel.company_edit.setCurrentText(current_text)
+                    logger.info(f"Set current text to '{current_text}' (not in dropdown)")
+        else:
+            logger.warning("Data panel not available for company dropdown refresh")
+
     def update_filename_preview(self) -> None:
-        """Public method to update filename preview."""
-        self._update_filename_preview() 
+        """Update the filename preview."""
+        self._update_filename_preview()
+    
+    def refresh_document_types(self) -> None:
+        """Refresh the document type dropdown with current document types."""
+        try:
+            # Get document types from the manager (assuming it's passed to this tab)
+            if hasattr(self, 'document_type_manager'):
+                document_types = self.document_type_manager.get_document_type_names()
+            else:
+                # Fallback to hardcoded values if manager not available
+                document_types = ["Invoice", "Credit Card", "Receipt", "Other"]
+            
+            # Store current selection
+            current_text = self.document_type_combo.currentText()
+            
+            # Clear and repopulate
+            self.document_type_combo.clear()
+            self.document_type_combo.addItems(document_types)
+            
+            # Restore selection if it still exists
+            if current_text:
+                index = self.document_type_combo.findText(current_text)
+                if index >= 0:
+                    self.document_type_combo.setCurrentIndex(index)
+        except Exception as e:
+            logger.error(f"Error refreshing document type dropdown: {e}") 

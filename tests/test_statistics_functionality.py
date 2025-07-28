@@ -9,7 +9,6 @@ import pytest
 import tempfile
 import os
 from unittest.mock import Mock, patch
-from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import Qt
 
 from ocr_receipt.business.database_manager import DatabaseManager
@@ -229,7 +228,7 @@ class TestStatisticsPanel:
     """Test the StatisticsPanel widget."""
     
     @pytest.fixture
-    def statistics_panel(self, qtbot):
+    def statistics_panel(self, qapp, qtbot):
         """Create a StatisticsPanel widget."""
         panel = StatisticsPanel()
         qtbot.addWidget(panel)
@@ -391,7 +390,7 @@ class TestStatisticsPanel:
 class TestStatisticsIntegration:
     """Integration tests for statistics functionality."""
     
-    def test_full_statistics_workflow(self, qtbot):
+    def test_full_statistics_workflow(self, qapp, qtbot):
         """Test the complete statistics workflow from database to GUI."""
         with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as tmp:
             db_path = tmp.name
