@@ -281,6 +281,9 @@ class TestProjectsTab:
         tab, mock_project_manager, mock_db_manager = projects_tab
         mock_project_manager.list_projects.return_value = sample_projects
         
+        # Reset mock call count since ProjectsTab.__init__ already called _load_projects()
+        mock_project_manager.list_projects.reset_mock()
+        
         # Call the tab's load method to update both table and status
         tab._load_projects()
         
